@@ -1,4 +1,4 @@
-require('debug').enable('logger:test');
+require('debug').enable('logger:test*');
 
 var Logger = require('../../index');
 
@@ -46,6 +46,12 @@ describe("Test", () => {
     dbg.warn('Simple warn message %o', array);
     dbg.error('Multiple line error message %p', array);
     dbg.silly('Multiple line silly message %O', array);
+  });
+
+  it('should extend debugger', function(){
+    const originalDbg = Logger.debugger('logger:test');
+    originalDbg.info('original');
+    originalDbg.extend('extended').info('extended');
   });
 
   it('should be done', function(){
