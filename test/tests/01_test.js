@@ -1,4 +1,4 @@
-var kaukau = require("kaukau");
+require('debug').enable('logger:test');
 
 var Logger = require('../../index');
 
@@ -37,7 +37,18 @@ describe("Test", () => {
     Logger.println(Logger.colors.BG_BLUE, 'background blue', 'message');
   });
 
+  it('should log using debugger', function(){
+    const dbg = Logger.debugger('logger:test'); 
+    dbg('Simple log message %d', 1)
+    dbg.log('Simple log message %d', 2);
+    dbg.info('Simple info message %j', array);
+    dbg.debug('Simple debug message', array);
+    dbg.warn('Simple warn message %o', array);
+    dbg.error('Multiple line error message %p', array);
+    dbg.silly('Multiple line silly message %O', array);
+  });
+
   it('should be done', function(){
-    Logger.log('we should be done here');
+    Logger('we should be done here');
   });
 });
