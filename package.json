@@ -1,7 +1,7 @@
 {
   "name": "@novice1/logger",
   "private": false,
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Logging utility",
   "keywords": [
     "logger",
@@ -23,6 +23,6 @@
     "debug": "^4.1.1"
   },
   "devDependencies": {
-    "kaukau": "0.0.70"
+    "kaukau": "0.0.71"
   }
 }
