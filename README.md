@@ -85,7 +85,7 @@ logger.println(logger.colors.BG_BLUE, 'blue background', 'message');
 
 ## Using with debug
 
-It can be used with the package [`debug`](https://www.npmjs.com/package/debug). All you have to do call the method `debugger` sending a `namespace` as parameter. That will return a function with the above [methods](##Methods) available except for `print` and `println`.
+It can be used with the package [`debug`](https://www.npmjs.com/package/debug). All you have to do call the method `debugger` sending a `namespace` as parameter. That will return a function with the above [methods](#Methods) available except for `print` and `println`.
 
 Example:
 
@@ -115,7 +115,7 @@ logLogin('hello'); //auth:login log : hello
 
 ## Formatters
 
-[printf-style](https://en.wikipedia.org/wiki/Printf_format_string) formatting can be used when [using with debug](##Using%20with%20debug).
+[printf-style](https://en.wikipedia.org/wiki/Printf_format_string) formatting can be used when [using with debug](#Using%20with%20debug).
 
 Officially supported formatters:
 
