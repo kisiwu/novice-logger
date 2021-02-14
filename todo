@@ -1,7 +1,13 @@
 - log levels
+- custom prefix + level
+
 - tests:
   - Logger.write: 
     - should not overwrite "write" from default logger
   - Logger.createLogger:
     - custom "write" function
     - "alwaysFormat=true" to receive formatted line in "write" function
+
+- doc:
+  - log levels
+  - custom prefix + level
