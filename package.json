@@ -1,7 +1,7 @@
 {
   "name": "@novice1/logger",
   "private": false,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Logging utility",
   "keywords": [
     "logger",
@@ -15,7 +15,7 @@
     "url": "https://github.com/kisiwu/novice-logger.git"
   },
   "scripts": {
-    "test": "kaukau --config test/config/testconfig.js"
+    "test": "mocha --config test/config/.mocharc.js"
   },
   "author": "demingongo",
   "license": "MIT",
@@ -23,6 +23,7 @@
     "debug": "^4.1.1"
   },
   "devDependencies": {
-    "kaukau": "0.0.71"
+    "chai": "^4.3.0",
+    "mocha": "^8.3.0"
   }
 }

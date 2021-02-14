@@ -1,5 +1,3 @@
-require('debug').enable('logger:test*');
-
 var Logger = require('../../index');
 
 describe("Test", () => {
