@@ -1,0 +1,7 @@
+- log levels
+- tests:
+  - Logger.write: 
+    - should not overwrite "write" from default logger
+  - Logger.createLogger:
+    - custom "write" function
+    - "alwaysFormat=true" to receive formatted line in "write" function
