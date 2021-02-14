@@ -115,7 +115,7 @@ logLogin('hello'); //auth:login log : hello
 
 ## Formatters
 
-[printf-style](https://en.wikipedia.org/wiki/Printf_format_string) formatting can be used when [using with debug](#Using%20with%20debug).
+[printf-style](https://en.wikipedia.org/wiki/Printf_format_string) formatting can be used when [using with debug](#using-with-debug).
 
 Officially supported formatters:
 
