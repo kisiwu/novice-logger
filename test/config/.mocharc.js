@@ -9,7 +9,7 @@ module.exports = {
   spec: 'test/tests/*.js',
   retries: 0,
   slow: 100,
-  timeout: 2000,
+  timeout: 2100,
   ui: 'bdd',
   color: true,
   file: [
