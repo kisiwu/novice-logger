@@ -1,5 +1,5 @@
-- log levels
-- custom prefix + level
+- debug: custom formatter pretty-print single line
+- rewrite in ts (typescript) ?
 
 - tests:
   - Logger.write: 
@@ -10,4 +10,10 @@
 
 - doc:
   - log levels
-  - custom prefix + level
+  - custom level prefix
+  - set logger level
+
+Archive:
+- log levels @done
+- custom level prefix @done
+- set logger level @done
