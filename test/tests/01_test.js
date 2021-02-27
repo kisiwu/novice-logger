@@ -1,8 +1,8 @@
-var Logger = require('../../index');
+let Logger = require('../../index');
 
 describe("Test", () => {
 
-  var array = [
+  let array = [
     {
       name: 'one',
       value: 1
@@ -13,7 +13,7 @@ describe("Test", () => {
     },
   ];
 
-  var obj = {
+  let obj = {
     name: 'circular ref'
   };
   obj.value = obj;
@@ -42,14 +42,47 @@ describe("Test", () => {
     dbg.info('Simple info message %j', array);
     dbg.debug('Simple debug message', array);
     dbg.warn('Simple warn message %o', array);
-    dbg.error('Multiple line error message %p', array);
-    dbg.silly('Multiple line silly message %O', array);
+    dbg.verbose('Single line verbose message %p', array);
+    dbg.error('Multiple lines error message %P', array);
+    dbg.silly('Multiple lines silly message %O', array);
   });
 
   it('should extend debugger', function(){
     const originalDbg = Logger.debugger('logger:test');
     originalDbg.info('original');
     originalDbg.extend('extended').info('extended');
+  });
+
+  it(`custom logger`, function(){
+    const customLogger = Logger.createLogger({
+      levels: {
+        success: {
+          color: Logger.colors.FG_GREEN, // color of message
+          level: Logger.levels.info // level of custom. Default: Logger.levels.silly
+        }
+      },
+      /**
+       * Overwrite the default function
+       */
+      write({ args, level, message, prefixText }) {
+        console.log(`custom ${prefixText} - ${message}`);
+      }
+    });
+    
+    // print objects on a single line
+    customLogger.singleLine = true;
+    
+    customLogger('simple log'); 
+    customLogger.log('simple log');
+    customLogger.info('info log');
+    customLogger.debug('debug log');
+    customLogger.warn('yellow log single line', {a: 1, b: 2, c: 3});
+
+    customLogger.singleLine = false;
+
+    customLogger.error('error log multiple lines', {a: 1, b: 2, c: 3});
+    
+    customLogger.custom('success',  'everything is green');
   });
 
   it('should be done', function(){

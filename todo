@@ -1,19 +1,19 @@
-- debug: custom formatter pretty-print single line
 - rewrite in ts (typescript) ?
 
-- tests:
-  - Logger.write: 
-    - should not overwrite "write" from default logger
-  - Logger.createLogger:
-    - custom "write" function
-    - "alwaysFormat=true" to receive formatted line in "write" function
-
-- doc:
-  - log levels
-  - custom level prefix
-  - set logger level
-
 Archive:
+- clean up lib @done
+- doc: @done
+  - log levels @done
+  - custom level prefix @done
+  - set logger level @done
+- tests: @done
+  - Logger.write: @done
+    - should not overwrite "write" from default logger @done
+  - Logger.createLogger: @done
+    - custom "write" function @done
+    - "alwaysFormat=true" to receive formatted line in "write" function @done
+- allow formatters (%i, %j, ...) in Logger ? (see private/formatdbg.js) @no @done
+- debug: custom formatter pretty-print single line @done
 - log levels @done
 - custom level prefix @done
 - set logger level @done
