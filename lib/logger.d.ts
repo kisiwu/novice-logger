@@ -30,6 +30,8 @@ declare namespace novice1Logger {
     level?: any;
     args?: any[];
     prefixText?: any;
+    message?: string;
+    [x: string]: any;
   }
   
   interface Debugger {
@@ -56,7 +58,8 @@ declare namespace novice1Logger {
         level?: number,
         color?: number
       }
-    }
+    };
+    [x: string]: any;
   }
   
   interface CustomLogger {
