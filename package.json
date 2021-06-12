@@ -1,7 +1,7 @@
 {
   "name": "@novice1/logger",
   "private": false,
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Logging utility",
   "keywords": [
     "logger",

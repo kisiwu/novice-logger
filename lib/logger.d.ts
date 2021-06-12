@@ -3,7 +3,7 @@ import LEVELS from './levels';
 
 declare var novice1Logger: novice1Logger.Logger;
 
-export default novice1Logger;
+export = novice1Logger;
 
 declare namespace novice1Logger {
   interface Logger {
