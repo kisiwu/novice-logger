@@ -1,3 +1,4 @@
+import { debug as Debug } from 'debug';
 import COLORS from './colors';
 import LEVELS from './levels';
 
@@ -80,4 +81,5 @@ declare namespace Logger {
     export function createLogger(options?: CreateLoggerOptions): CustomLogger;
     function _debugger(namespace: string): Debugger;
     export { _debugger as debugger };
+    export { Debug as Debug };
 }
