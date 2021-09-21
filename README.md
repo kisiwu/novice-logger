@@ -120,9 +120,14 @@ logger.print(logger.colors.FG_GREEN, 'green', 'message');
 
 It can be used with the package [`debug`](https://www.npmjs.com/package/debug). All you have to do call the method `debugger` sending a `namespace` as parameter. That will return a function with the available [methods](#Methods) except for `print` and `println`.
 
+[`debug`](https://www.npmjs.com/package/debug) properties and methods are available from the property `Debug`. 
+
 Example:
 
 ```js
+// enable 'app:*'
+require('@novice1/logger').Debug.enable('app:*');
+
 let logger = require('@novice1/logger').debugger('app:log');
 logger('simple log'); 
 logger.log('simple log');
@@ -135,6 +140,9 @@ logger.error('error log');
 You can also extend debugger
 
 ```js
+// enable 'auth:*'
+require('@novice1/logger').Debug.enable('auth:*');
+
 let logger = require('@novice1/logger').debugger('auth');
 
 // extend namespace
