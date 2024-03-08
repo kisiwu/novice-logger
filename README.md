@@ -104,7 +104,7 @@ Example:
 let logger = require('@novice1/logger');
 
 // set level to info
-logger.level = logger.levels.info;
+logger.setLevel(logger.levels.info);
 
 // will print
 logger.info('info log');

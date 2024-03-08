@@ -1,7 +1,7 @@
 {
   "name": "@novice1/logger",
   "private": false,
-  "version": "1.3.3",
+  "version": "1.4.0",
   "description": "Logging utility",
   "keywords": [
     "logger",
@@ -23,7 +23,7 @@
     "debug": "^4.3.4"
   },
   "devDependencies": {
-    "chai": "^4.3.7",
-    "mocha": "^10.2.0"
+    "chai": "^5.1.0",
+    "mocha": "^10.3.0"
   }
 }

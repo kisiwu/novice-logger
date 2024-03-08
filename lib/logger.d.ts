@@ -26,6 +26,8 @@ declare namespace Logger {
       write: WriteFunction;
       alwaysFormat: boolean;
       singleLine: boolean;
+      get level(): string;
+      setLevel(v: string | number): void;
       error: (...args: any[]) => void;
       warn: (...args: any[]) => void;
       info: (...args: any[]) => void;
@@ -54,6 +56,8 @@ declare namespace Logger {
       write: WriteFunction | null;
       alwaysFormat: boolean;
       singleLine: boolean;
+      get level(): string;
+      setLevel(v: string | number): void;
       error: (...args: any[]) => void;
       warn: (...args: any[]) => void;
       info: (...args: any[]) => void;
@@ -67,7 +71,8 @@ declare namespace Logger {
 
     export const colors = COLORS;
     export const levels = LEVELS;
-  
+
+    export function setLevel(v: string | number): void;
     export function error(...args: any[]): void;
     export function warn(...args: any[]): void;
     export function info(...args: any[]): void;

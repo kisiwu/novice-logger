@@ -36,7 +36,7 @@ describe("Test", () => {
   });
 
   it('should log using debugger', function(){
-    const dbg = Logger.debugger('logger:test'); 
+    const dbg = Logger.debugger('logger:test');
     dbg('Simple log message %d', 1)
     dbg.log('Simple log message %d', 2);
     dbg.info('Simple info message %j', array);
@@ -71,8 +71,7 @@ describe("Test", () => {
     
     // print objects on a single line
     customLogger.singleLine = true;
-    
-    customLogger('simple log'); 
+    customLogger('simple log');
     customLogger.log('simple log');
     customLogger.info('info log');
     customLogger.debug('debug log');
