@@ -84,6 +84,13 @@ describe("Test", () => {
     customLogger.custom('success',  'everything is green');
   });
 
+  it('should format messages', function(){
+    const message = ['one', 2, {three: ['four', 5]}]
+    console.log('message:', message);
+    console.log('multiple lines:', Logger.formatMessage(message));
+    console.log('single line:', Logger.formatMessage(message, true));
+  });
+
   it('should be done', function(){
     Logger('we should be done here');
   });

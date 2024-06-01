@@ -82,6 +82,8 @@ declare namespace Logger {
     export function silly(...args: any[]): void;
     export function print(...args: any[]): void;
     export function println(...args: any[]): void;
+
+    export function formatMessage(message: any[], singleLine?: boolean): string
   
     export function createLogger(options?: CreateLoggerOptions): CustomLogger;
     function _debugger(namespace: string): Debugger;
