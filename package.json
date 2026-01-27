@@ -1,13 +1,14 @@
 {
   "name": "@novice1/logger",
   "private": false,
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Logging utility",
   "keywords": [
     "logger",
     "log",
     "debugger",
-    "debug"
+    "debug",
+    "logging"
   ],
   "main": "index.js",
   "repository": {
@@ -20,10 +21,9 @@
   "author": "demingongo",
   "license": "MIT",
   "dependencies": {
-    "debug": "^4.4.0"
+    "debug": "^4.4.3"
   },
   "devDependencies": {
-    "chai": "^5.2.0",
-    "mocha": "^11.1.0"
+    "mocha": "^11.3.0"
   }
 }
