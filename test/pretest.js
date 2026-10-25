@@ -1,1 +1,1 @@
-require('../index').Debug.enable('logger:test*'); // enable debug logs
+require('../lib/index').Debug.enable('logger:test*'); // enable debug logs

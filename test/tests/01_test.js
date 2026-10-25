@@ -1,4 +1,4 @@
-let Logger = require('../../index');
+let Logger = require('../../lib/index');
 
 describe("Test", () => {
 

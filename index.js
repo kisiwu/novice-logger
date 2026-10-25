@@ -1,1 +1,1 @@
-module.exports = require('./lib/logger');
+module.exports = require('./old-lib/logger');

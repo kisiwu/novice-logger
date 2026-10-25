@@ -1,2 +1,2 @@
-import * as Logger from './lib/logger';
+import * as Logger from './old-lib/logger';
 export = Logger;

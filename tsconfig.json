@@ -3,6 +3,8 @@
   "include": ["src"],
   "exclude": ["node_modules"],
   "compilerOptions": {
+    "outDir": "./lib",
+    "rootDir": "./src",
     "typeRoots": ["node_modules/@types"],
     "types": ["node"],
     "module": "nodenext",
