@@ -230,7 +230,7 @@ function doLog(
 
 function log(this: LoggerContext, ...args: any[]): void {
   if (this._level >= LogLevel.verbose) {
-    doLog(this, Colors.FG_DEFAULT, 'log', args, this.write, this.alwaysFormat);
+    doLog(this, Colors.FG_DEFAULT, 'verb', args, this.write, this.alwaysFormat);
   }
 }
 
