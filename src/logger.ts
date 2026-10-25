@@ -1,5 +1,5 @@
 import Debug from 'debug'
-import util from 'util'
+import { inspect } from 'util'
 import { Colors } from './colors'
 import { LogLevel, LogLevelValue, type LogLevelType } from './levels'
 
@@ -20,7 +20,7 @@ function arrayToStringCompact(arr: Array<any>): string {
       } else if (typeof x === "object") {
         let v = x;
         try {
-          v = util.inspect(x, {
+          v = inspect(x, {
             depth: 5,
             compact: true,
             breakLength: Infinity,
@@ -52,12 +52,9 @@ function arrayToString(arr: Array<any>): string {
       if (Array.isArray(x)) {
         return "[" + arrayToString(x) + "]";
       } else if (typeof x === "object") {
-        /**
-         * @type {string}
-         */
         let v = x;
         try {
-          v = util.inspect(x, {
+          v = inspect(x, {
             depth: 5,
             compact: false,
             colors: false,

@@ -1,4 +1,5 @@
 const { Logger } = require('../../lib/index');
+const assert = require('node:assert');
 
 describe("Test", () => {
 
@@ -86,9 +87,15 @@ describe("Test", () => {
 
   it('should format messages', function(){
     const message = ['one', 2, {three: ['four', 5]}]
+    const multi = Logger.formatMessage(message);
+    const single = Logger.formatMessage(message, true);
     console.log('message:', message);
-    console.log('multiple lines:', Logger.formatMessage(message));
-    console.log('single line:', Logger.formatMessage(message, true));
+    console.log('multiple lines:', multi);
+    console.log('single line:', single);
+
+    assert.ok(multi.includes('\n'), 'multi-line output should contain newlines');
+    assert.ok(!single.includes('\n'), 'single-line output should not contain newlines');
+    assert.strictEqual(single, 'one 2 { three: [ \'four\', 5 ] }');
   });
 
   it('should be done', function(){
