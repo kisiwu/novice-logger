@@ -15,23 +15,23 @@ Once imported use the function as it is or use its methods to log.
 Example:
 
 ```js
-let logger = require('@novice1/logger');
+const { Logger } = require('@novice1/logger');
 
 // white
-logger('simple log'); 
-logger.log('simple log');
+Logger('verbose log'); 
+Logger.log('verbose log');
 
 // blue
-logger.info('info log');
+Logger.info('info log');
 
 // magenta background
-logger.debug('debug log');
+Logger.debug('debug log');
 
 // yellow
-logger.warn('yellow log');
+Logger.warn('yellow log');
 
 // red
-logger.error('error log');
+Logger.error('error log');
 ```
 
 You can also chose your own colors for the logs using the methods `print` and `println`. Available colors can be found in the property `colors`.
@@ -39,13 +39,13 @@ You can also chose your own colors for the logs using the methods `print` and `p
 Example:
 
 ```js
-let logger = require('@novice1/logger');
+const { Logger } = require('@novice1/logger');
 
 // green
-logger.print(logger.colors.FG_GREEN, 'green', 'message');
+Logger.print(Logger.colors.FG_GREEN, 'green', 'message');
 
 // blue background
-logger.println(logger.colors.BG_BLUE, 'blue background', 'message');
+Logger.println(Logger.colors.BG_BLUE, 'blue background', 'message');
 ```
 
 #### Available colors
@@ -80,7 +80,7 @@ logger.println(logger.colors.BG_BLUE, 'blue background', 'message');
 - **info**: (...args: any[]) => void
 - **log**: (...args: any[]) => void
 - **debug**: (...args: any[]) => void
-- **silly**: (...args: any[]) => void
+- **trace**: (...args: any[]) => void
 - **println**: (colorCode: int, ...args: any[]) => void
 - **print**: (colorCode: int, ...args: any[]) => void
 
@@ -94,26 +94,26 @@ By priority:
 - **error**
 - **warn**
 - **info**
-- **log** / **verbose**
+- **verbose**
 - **debug**
-- **silly**
+- **trace**
 
 Example:
 
 ```js
-let logger = require('@novice1/logger');
+const { Logger } = require('@novice1/logger');
 
 // set level to info
-logger.setLevel(logger.levels.info);
+Logger.setLevel(Logger.levels.info);
 
 // will print
-logger.info('info log');
+Logger.info('info log');
 
 // will print
-logger.warn('warn log');
+Logger.warn('warn log');
 
 // will not print
-logger.print(logger.colors.FG_GREEN, 'green', 'message');
+Logger.print(Logger.colors.FG_GREEN, 'green', 'message');
 ```
 
 ## Using with debug
@@ -128,9 +128,10 @@ Example:
 // enable 'app:*'
 require('@novice1/logger').Debug.enable('app:*');
 
-let logger = require('@novice1/logger').debugger('app:log');
-logger('simple log'); 
-logger.log('simple log');
+const { Logger } = require('@novice1/logger');
+const logger = Logger.debugger('app:log');
+logger('verbose log'); 
+logger.log('verbose log');
 logger.info('info log');
 logger.debug('debug log');
 logger.warn('yellow log');
@@ -143,15 +144,16 @@ You can also extend debugger
 // enable 'auth:*'
 require('@novice1/logger').Debug.enable('auth:*');
 
-let logger = require('@novice1/logger').debugger('auth');
+const { Logger } = require('@novice1/logger');
+const logger = Logger.debugger('auth');
 
 // extend namespace
 const logSign = logger.extend('sign');
 const logLogin = logger.extend('login');
 
-logger('hello'); // auth log : hello
-logSign('hello'); //auth:sign log : hello
-logLogin('hello'); //auth:login log : hello
+logger('hello'); // auth verbose : hello
+logSign('hello'); //auth:sign verbose : hello
+logLogin('hello'); //auth:login verbose : hello
 ```
 
 ## Formatters
@@ -184,7 +186,7 @@ You can create a custom logger, assign its own level, print function (= write) a
 
 Example:
 ```js
-const Logger = require('@novice1/logger');
+const { Logger } = require('@novice1/logger');
 
 // create custom logger
 const customLogger = Logger.createLogger({
@@ -192,7 +194,7 @@ const customLogger = Logger.createLogger({
     success: {
       // color of message.
       color: Logger.colors.FG_GREEN, 
-      // level. Default: Logger.levels.silly
+      // level. Default: Logger.levels.trace
       level: Logger.levels.info 
     }
   },
@@ -209,14 +211,14 @@ const customLogger = Logger.createLogger({
 customLogger.singleLine = true;
 
 // set level
-customLogger.level = Logger.levels.log;
+customLogger.level = Logger.levels.verbose;
 
 // will not print because of level set
 customLogger.debug('debug log');
 
 // will print
-customLogger('simple log'); 
-customLogger.log('simple log');
+customLogger('verbose log'); 
+customLogger.log('verbose log');
 customLogger.info('info log');
 customLogger.warn('warning log');
 customLogger.error('error log');

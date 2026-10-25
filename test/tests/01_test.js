@@ -1,4 +1,4 @@
-let Logger = require('../../lib/index');
+const { Logger } = require('../../lib/index');
 
 describe("Test", () => {
 
@@ -21,12 +21,12 @@ describe("Test", () => {
   array.push(obj);
 
   it('should log', function(){
-    Logger.log('Simple log message', array);
+    Logger.log('Simple verbose message', array);
     Logger.info('Simple info message', array);
     Logger.debug('Simple debug message', array);
     Logger.warn('Simple warn message', array);
     Logger.error('Simple error message', array);
-    Logger.silly('Simple silly message', array);
+    Logger.trace('Simple trace message', array);
   });
 
   it('should print', function(){
@@ -37,14 +37,14 @@ describe("Test", () => {
 
   it('should log using debugger', function(){
     const dbg = Logger.debugger('logger:test');
-    dbg('Simple log message %d', 1)
-    dbg.log('Simple log message %d', 2);
+    dbg('Simple verbose message %d', 1)
+    dbg.log('Simple verbose message %d', 2);
     dbg.info('Simple info message %j', array);
     dbg.debug('Simple debug message', array);
     dbg.warn('Simple warn message %o', array);
     dbg.verbose('Single line verbose message %p', array);
     dbg.error('Multiple lines error message %P', array);
-    dbg.silly('Multiple lines silly message %O', array);
+    dbg.trace('Multiple lines trace message %O', array);
   });
 
   it('should extend debugger', function(){
@@ -58,7 +58,7 @@ describe("Test", () => {
       levels: {
         success: {
           color: Logger.colors.FG_GREEN, // color of message
-          level: Logger.levels.info // level of custom. Default: Logger.levels.silly
+          level: Logger.levels.info // level of custom. Default: Logger.levels.trace
         }
       },
       /**
@@ -71,8 +71,8 @@ describe("Test", () => {
     
     // print objects on a single line
     customLogger.singleLine = true;
-    customLogger('simple log');
-    customLogger.log('simple log');
+    customLogger('verbose log');
+    customLogger.log('verbose log');
     customLogger.info('info log');
     customLogger.debug('debug log');
     customLogger.warn('yellow log single line', {a: 1, b: 2, c: 3});

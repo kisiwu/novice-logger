@@ -359,7 +359,6 @@ declare namespace Logger {
     formatMessage(message: any[], singleLine?: boolean): string;
     createLogger(options?: CreateLoggerOptions | null): CustomLogger;
     debugger(namespace: string): Debugger;
-    Debug: typeof Debug;
   }
 }
 
@@ -470,7 +469,5 @@ function decorateDebugger(dbg: Debug.Debugger): Logger.Debugger {
 Logger.debugger = function (namespace: string): Logger.Debugger {
   return decorateDebugger(Debug(namespace));
 };
-
-Logger.Debug = Debug;
 
 //#endregion
