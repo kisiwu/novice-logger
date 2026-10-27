@@ -1,4 +1,4 @@
-export = {
+export const Colors = {
   RESET: 0,
   BRIGHT: 1,
   DIM: 2,
@@ -6,6 +6,7 @@ export = {
   BLINK: 5,
   REVERSE: 7,
   HIDDEN: 8,
+
   FG_BLACK: 30,
   FG_RED: 31,
   FG_GREEN: 32,
@@ -15,6 +16,7 @@ export = {
   FG_CYAN: 36,
   FG_WHITE: 37,
   FG_DEFAULT: 39,
+
   BG_BLACK: 40,
   BG_RED: 41,
   BG_GREEN: 42,
@@ -23,5 +25,8 @@ export = {
   BG_MAGENTA: 45,
   BG_CYAN: 46,
   BG_WHITE: 47,
-  BG_DEFAULT: 49,
-};
+  BG_DEFAULT: 49
+} as const;
+
+export type ColorName = keyof typeof Colors;
+export type ColorValue = typeof Colors[ColorName];

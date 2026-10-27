@@ -1,5 +1,8 @@
 .github
 test
+src/
+old-lib/
+tsconfig.json
 
 private
 

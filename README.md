@@ -2,172 +2,172 @@
 
 A JavaScript logging utility that prefixes logs and colors them if stdout/stderr is a TTY. Works in Node.js.
 
+## Table of contents
+
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [API](#api)
+  - [Methods](#methods)
+  - [Colors](#colors)
+  - [Levels](#levels)
+- [Using with debug](#using-with-debug)
+  - [Extending a debugger](#extending-a-debugger)
+  - [Formatters](#formatters)
+- [Custom logger](#custom-logger)
+
 ## Installation
 
 ```bash
-$ npm install @novice1/logger
+npm install @novice1/logger
 ```
 
-## Usage
+## Quick start
 
-Once imported use the function as it is or use its methods to log.
-
-Example:
+Once imported, use the function as it is or use its methods to log.
 
 ```js
-let logger = require('@novice1/logger');
+const { Logger } = require('@novice1/logger');
 
 // white
-logger('simple log'); 
-logger.log('simple log');
+Logger('verbose log');
+Logger.log('verbose log');
 
 // blue
-logger.info('info log');
+Logger.info('info log');
 
 // magenta background
-logger.debug('debug log');
+Logger.debug('debug log');
 
 // yellow
-logger.warn('yellow log');
+Logger.warn('yellow log');
 
 // red
-logger.error('error log');
+Logger.error('error log');
 ```
 
-You can also chose your own colors for the logs using the methods `print` and `println`. Available colors can be found in the property `colors`.
+## API
 
-Example:
+### Methods
+
+| Method    | Signature                                   |
+|-----------|---------------------------------------------|
+| `error`   | `(...args: any[]) => void`                  |
+| `warn`    | `(...args: any[]) => void`                  |
+| `info`    | `(...args: any[]) => void`                  |
+| `log`     | `(...args: any[]) => void`                  |
+| `debug`   | `(...args: any[]) => void`                  |
+| `trace`   | `(...args: any[]) => void`                  |
+| `println` | `(colorCode: int, ...args: any[]) => void`  |
+| `print`   | `(colorCode: int, ...args: any[]) => void`  |
+
+### Colors
+
+Choose your own colors with the methods `print` and `println`. Available colors are in the property `colors`.
 
 ```js
-let logger = require('@novice1/logger');
+const { Logger } = require('@novice1/logger');
 
 // green
-logger.print(logger.colors.FG_GREEN, 'green', 'message');
+Logger.print(Logger.colors.FG_GREEN, 'green', 'message');
 
 // blue background
-logger.println(logger.colors.BG_BLUE, 'blue background', 'message');
+Logger.println(Logger.colors.BG_BLUE, 'blue background', 'message');
 ```
 
-#### Available colors
-- RESET
-- BRIGHT
-- DIM
-- UNDERSCORE
-- BLINK
-- REVERSE
-- HIDDEN
-- FG_BLACK
-- FG_RED
-- FG_GREEN
-- FG_YELLOW
-- FG_BLUE
-- FG_MAGENTA
-- FG_CYAN
-- FG_WHITE
-- BG_BLACK
-- BG_RED
-- BG_GREEN
-- BG_YELLOW
-- BG_BLUE
-- BG_MAGENTA
-- BG_CYAN
-- BG_WHITE
+| Style      | Foreground   | Background   |
+|------------|--------------|--------------|
+| `RESET`    | `FG_BLACK`   | `BG_BLACK`   |
+| `BRIGHT`   | `FG_RED`     | `BG_RED`     |
+| `DIM`      | `FG_GREEN`   | `BG_GREEN`   |
+| `UNDERSCORE` | `FG_YELLOW` | `BG_YELLOW` |
+| `BLINK`    | `FG_BLUE`    | `BG_BLUE`    |
+| `REVERSE`  | `FG_MAGENTA` | `BG_MAGENTA` |
+| `HIDDEN`   | `FG_CYAN`    | `BG_CYAN`    |
+|            | `FG_WHITE`   | `BG_WHITE`   |
 
-## Methods
+### Levels
 
-- **error**: (...args: any[]) => void
-- **warn**: (...args: any[]) => void
-- **info**: (...args: any[]) => void
-- **log**: (...args: any[]) => void
-- **debug**: (...args: any[]) => void
-- **silly**: (...args: any[]) => void
-- **println**: (colorCode: int, ...args: any[]) => void
-- **print**: (colorCode: int, ...args: any[]) => void
-
-
-## Levels
-
-Methods can print logs depending on the level of the logger.
-Levels are available in the property `levels`.
+Methods print logs depending on the level of the logger. Levels are available in the property `levels`.
 
 By priority:
-- **error**
-- **warn**
-- **info**
-- **log** / **verbose**
-- **debug**
-- **silly**
 
-Example:
+1. **error**
+2. **warn**
+3. **info**
+4. **verbose**
+5. **debug**
+6. **trace**
+
+> **Note:** `print` and `println` are at level `trace`: they only print when the logger level is `trace`.
 
 ```js
-let logger = require('@novice1/logger');
+const { Logger } = require('@novice1/logger');
 
 // set level to info
-logger.setLevel(logger.levels.info);
+Logger.setLevel(Logger.levels.info);
 
 // will print
-logger.info('info log');
+Logger.info('info log');
 
 // will print
-logger.warn('warn log');
+Logger.warn('warn log');
 
-// will not print
-logger.print(logger.colors.FG_GREEN, 'green', 'message');
+// will not print (print and println are at level trace)
+Logger.print(Logger.colors.FG_GREEN, 'green', 'message');
 ```
 
 ## Using with debug
 
-It can be used with the package [`debug`](https://www.npmjs.com/package/debug). All you have to do call the method `debugger` sending a `namespace` as parameter. That will return a function with the available [methods](#Methods) except for `print` and `println`.
+It can be used with the package [`debug`](https://www.npmjs.com/package/debug). Call the method `debugger` with a `namespace` as parameter. It returns a function with the available [methods](#methods), except for `print` and `println`.
 
-[`debug`](https://www.npmjs.com/package/debug) properties and methods are available from the property `Debug`. 
-
-Example:
+[`debug`](https://www.npmjs.com/package/debug) properties and methods are available from the property `Debug`.
 
 ```js
 // enable 'app:*'
 require('@novice1/logger').Debug.enable('app:*');
 
-let logger = require('@novice1/logger').debugger('app:log');
-logger('simple log'); 
-logger.log('simple log');
+const { Logger } = require('@novice1/logger');
+const logger = Logger.debugger('app:log');
+logger('verbose log');
+logger.log('verbose log');
 logger.info('info log');
 logger.debug('debug log');
 logger.warn('yellow log');
 logger.error('error log');
 ```
 
-You can also extend debugger
+### Extending a debugger
 
 ```js
 // enable 'auth:*'
 require('@novice1/logger').Debug.enable('auth:*');
 
-let logger = require('@novice1/logger').debugger('auth');
+const { Logger } = require('@novice1/logger');
+const logger = Logger.debugger('auth');
 
 // extend namespace
 const logSign = logger.extend('sign');
 const logLogin = logger.extend('login');
 
-logger('hello'); // auth log : hello
-logSign('hello'); //auth:sign log : hello
-logLogin('hello'); //auth:login log : hello
+logger('hello');      // auth verbose : hello
+logSign('hello');     // auth:sign verbose : hello
+logLogin('hello');    // auth:login verbose : hello
 ```
 
-## Formatters
+### Formatters
 
 [printf-style](https://en.wikipedia.org/wiki/Printf_format_string) formatting can be used when [using with debug](#using-with-debug).
 
 Officially supported formatters:
 
-| Formatter | Representation |
-|-----------|----------------|
-| `%O`      | Pretty-print an Object on multiple lines. |
-| `%o`      | Pretty-print an Object all on a single line. |
-| `%s`      | String. |
-| `%d` or `%i`      | Number (both integer and float). |
-| `%j`      | JSON. Replaced with the string '[Circular]' if the argument contains circular references. |
-| `%%`      | Single percent sign ('%'). This does not consume an argument. |
+| Formatter    | Representation |
+|--------------|----------------|
+| `%O`         | Pretty-print an Object on multiple lines. |
+| `%o`         | Pretty-print an Object all on a single line. |
+| `%s`         | String. |
+| `%d` or `%i` | Number (both integer and float). |
+| `%j`         | JSON. Replaced with the string '[Circular]' if the argument contains circular references. |
+| `%%`         | Single percent sign ('%'). This does not consume an argument. |
 
 Other formatters:
 
@@ -176,24 +176,21 @@ Other formatters:
 | `%P`      | Print an Object on multiple lines. |
 | `%p`      | Print an Object on a single line. |
 
-
-
 ## Custom logger
 
-You can create a custom logger, assign its own level, print function (= write) and more.
+You can create a custom logger with its own levels, print function (= write) and more.
 
-Example:
 ```js
-const Logger = require('@novice1/logger');
+const { Logger } = require('@novice1/logger');
 
 // create custom logger
 const customLogger = Logger.createLogger({
   levels: {
     success: {
       // color of message.
-      color: Logger.colors.FG_GREEN, 
-      // level. Default: Logger.levels.silly
-      level: Logger.levels.info 
+      color: Logger.colors.FG_GREEN,
+      // level. Default: Logger.levels.trace
+      level: Logger.levels.info
     }
   },
   /**
@@ -201,7 +198,12 @@ const customLogger = Logger.createLogger({
    * Could be used to customize message, write in a file, etc ...
    */
   write({ args, level, message, prefixText }) {
-    console.log(`custom ${prefixText} - ${message} !`);
+    const msg = `custom ${prefixText} - ${message} !`;
+    if (level === 'error') {
+      console.error(msg);
+    } else {
+      console.log(msg);
+    }
   }
 });
 
@@ -209,18 +211,18 @@ const customLogger = Logger.createLogger({
 customLogger.singleLine = true;
 
 // set level
-customLogger.level = Logger.levels.log;
+customLogger.level = Logger.levels.verbose;
 
 // will not print because of level set
 customLogger.debug('debug log');
 
 // will print
-customLogger('simple log'); 
-customLogger.log('simple log');
+customLogger('verbose log');
+customLogger.log('verbose log');
 customLogger.info('info log');
 customLogger.warn('warning log');
 customLogger.error('error log');
 
 // custom level print
-customLogger.custom('success',  'everything is good');
+customLogger.custom('success', 'everything is good');
 ```
