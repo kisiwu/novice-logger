@@ -224,7 +224,11 @@ function doLog(
       prefixText: name ? colorText(name, colorNumber) : ''
     });
   } else {
-    process.stdout.write(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+    if (name === 'error') {
+      process.stderr.write(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+    } else {
+      process.stdout.write(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+    }
   }
 }
 

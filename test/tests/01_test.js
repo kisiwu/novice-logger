@@ -66,7 +66,12 @@ describe("Test", () => {
        * Overwrite the default function
        */
       write({ args, level, message, prefixText }) {
-        console.log(`custom ${prefixText} - ${message}`);
+        const msg = `custom ${prefixText} - ${message}`;
+        if (level === 'error') {
+          console.error(msg);
+        } else {
+          console.log(msg);
+        }
       }
     });
     
