@@ -5,7 +5,7 @@ import { LogLevel, LogLevelValue, type LogLevelType } from './levels'
 //#region Declarations and Interfaces for runtime-specific utilities
 
 /**
- * Needs --allow-write permission to write to stdout and stderr in Deno.
+ * For Deno, --allow-env is needed because of the debug dependency.
  */
 declare const Deno: {
   inspect(obj: any, options: InspectOptions): string;
