@@ -58,7 +58,6 @@ const CACHED_UTILS: {
 
 /**
  * Inspectors for different runtime environments.
- * E
  */
 const INSPECTORS: {
   /**
