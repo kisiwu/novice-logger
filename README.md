@@ -32,7 +32,7 @@ const { Logger } = require('@novice1/logger');
 Logger('verbose log');
 Logger.log('verbose log');
 
-// blue
+// cyan
 Logger.info('info log');
 
 // magenta background
