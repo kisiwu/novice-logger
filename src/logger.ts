@@ -1,9 +1,189 @@
 import Debug from 'debug'
-import { inspect } from 'util'
 import { Colors } from './colors'
 import { LogLevel, LogLevelValue, type LogLevelType } from './levels'
 
+//#region Declarations and Interfaces for runtime-specific utilities
+
+/**
+ * Needs --allow-write permission to write to stdout and stderr in Deno.
+ */
+declare const Deno: {
+  inspect(obj: any, options: InspectOptions): string;
+  stdout: { writeSync(p: Uint8Array): Promise<number>; };
+  stderr: { writeSync(p: Uint8Array): Promise<number>; };
+};
+
+declare const Bun: {
+  inspect(obj: any, options: InspectOptions): string;
+};
+
+interface InspectOptions {
+  depth?: number;
+  compact?: boolean;
+  colors?: boolean;
+  breakLength?: number; // does not exist in Bun's inspect options
+  getters?: boolean; // does not exist in Bun's inspect options
+}
+
+interface InspectFunction {
+  (obj: any, options: InspectOptions): string;
+}
+
+interface Inspector {
+  inspect: InspectFunction;
+  isAvailable: () => boolean;
+}
+
+interface TerminalWriteFunction {
+  (p: string): void;
+}
+
+interface Terminal {
+  isAvailable: () => boolean;
+  stderr: TerminalWriteFunction;
+  stdout: TerminalWriteFunction;
+}
+
+//#endregion
+
+//#region Utilities for runtime-specific functions
+
+/**
+ * Cached utilities for runtime-specific functions like inspect and write operations.
+ */
+const CACHED_UTILS: {
+  inspect?: InspectFunction;
+  terminal?: Terminal;
+} = {};
+
+/**
+ * Inspectors for different runtime environments.
+ * E
+ */
+const INSPECTORS: {
+  /**
+   * Deno-specific inspector.
+   */
+  deno: Inspector;
+  /**
+   * Bun-specific inspector.
+   */
+  bun: Inspector;
+  /**
+   * Node.js-specific inspector.
+   */
+  node: Inspector;
+  /**
+   * Fallback inspector for unknown environments.
+   */
+  fallback: Inspector;
+} = {
+  deno: {
+    inspect: (obj: any, options: InspectOptions): string => {
+      return Deno.inspect(obj, {
+        depth: options.depth,
+        compact: options.compact,
+        colors: options.colors,
+        breakLength: options.breakLength,
+        getters: options.getters,
+      });
+    },
+    isAvailable: () => typeof Deno !== 'undefined' && typeof Deno.inspect === 'function'
+  },
+
+  bun: {
+    inspect: (obj: any, options: InspectOptions): string => {
+      return Bun.inspect(obj, {
+        depth: options.depth,
+        compact: options.compact,
+        colors: options.colors,
+      });
+    },
+    isAvailable: () => typeof Bun !== 'undefined' && typeof Bun.inspect === 'function'
+  },
+
+  node: {
+    inspect: (obj: any, options: InspectOptions): string => {
+      const { inspect } = module.require('util');
+      return inspect(obj, {
+        depth: options.depth,
+        compact: options.compact,
+        colors: options.colors,
+        breakLength: options.breakLength,
+        getters: options.getters,
+      });
+    },
+    isAvailable: () => typeof module !== 'undefined' && typeof module.require === 'function'
+  },
+
+  fallback: {
+    inspect: (obj: any, _options: InspectOptions): string => {
+      return String(obj);
+    },
+    isAvailable: () => true
+  }
+};
+
+const TERMINALS: {
+  /**
+   * Deno-specific terminal.
+   */
+  deno: Terminal;
+  /**
+   * Node.js-specific terminal. Works for Bun as well, which is better than using unawaited async Bun.write().
+   */
+  node: Terminal;
+} = {
+  deno: {
+    isAvailable: () => typeof Deno !== 'undefined' &&
+      Deno.stdout && typeof Deno.stdout.writeSync === 'function' &&
+      Deno.stderr && typeof Deno.stderr.writeSync === 'function',
+    stderr: (p: string) => { Deno.stderr.writeSync(new TextEncoder().encode(p)) },
+    stdout: (p: string) => { Deno.stdout.writeSync(new TextEncoder().encode(p)) },
+  },
+  node: {
+    isAvailable: () => typeof process !== 'undefined' &&
+      process.stdout && typeof process.stdout.write === 'function' &&
+      process.stderr && typeof process.stderr.write === 'function',
+    stderr: (p: string) => { process.stderr.write(p) },
+    stdout: (p: string) => { process.stdout.write(p) },
+  }
+};
+
+//#endregion
+
 //#region Formatters
+
+/**
+ * Inspects the given object using the appropriate environment-specific inspect function.
+ * 
+ * @param obj The object to inspect.
+ * @param options The inspection options.
+ * @returns The inspected string representation of the object.
+ */
+function universalInspect(obj: any, options: InspectOptions): string {
+  try {
+    if (typeof obj === 'string') {
+      return obj;
+    }
+    if (CACHED_UTILS.inspect) {
+      return CACHED_UTILS.inspect(obj, options);
+    }
+    if (INSPECTORS.deno.isAvailable()) {
+      CACHED_UTILS.inspect = INSPECTORS.deno.inspect;
+    } else if (INSPECTORS.bun.isAvailable()) {
+      CACHED_UTILS.inspect = INSPECTORS.bun.inspect;
+    } else if (INSPECTORS.node.isAvailable()) {
+      CACHED_UTILS.inspect = INSPECTORS.node.inspect;
+    } else {
+      CACHED_UTILS.inspect = INSPECTORS.fallback.inspect;
+    }
+    return CACHED_UTILS.inspect(obj, options);
+  } catch (e) {
+    Debug('@novice1/logger')(e);
+    return String(obj);
+  }
+}
 
 /**
  * 
@@ -13,30 +193,30 @@ import { LogLevel, LogLevelValue, type LogLevelType } from './levels'
  * @return string
  */
 function arrayToStringCompact(arr: Array<any>): string {
-  return Array.from(arr)
-    .map(function(x) {
-      if (Array.isArray(x)) {
-        return "[" + arrayToStringCompact(x) + "]";
-      } else if (typeof x === "object") {
-        let v = x;
-        try {
-          v = inspect(x, {
-            depth: 5,
-            compact: true,
-            breakLength: Infinity,
-            colors: false,
-            getters: true,
-          });
-        } catch (e) {
-          // debug
-          Debug('@novice1/logger')(e);
-        }
-        return v;
-      } else {
-        return x;
+  const result: any[] = [];
+  for (const x of Array.from(arr)) {
+    if (Array.isArray(x)) {
+      result.push("[" + arrayToStringCompact(x) + "]");
+    } else if (typeof x === "object") {
+      let v = x;
+      try {
+        v = universalInspect(x, {
+          depth: 5,
+          compact: true,
+          breakLength: Infinity,
+          colors: false,
+          getters: true,
+        });
+      } catch (e) {
+        // debug
+        Debug('@novice1/logger')(e);
       }
-    })
-    .join(" ");
+      result.push(v);
+    } else {
+      result.push(x);
+    }
+  }
+  return result.join(" ");
 }
 
 /**
@@ -47,29 +227,29 @@ function arrayToStringCompact(arr: Array<any>): string {
  * @return string
  */
 function arrayToString(arr: Array<any>): string {
-  return Array.from(arr)
-    .map(function(x) {
-      if (Array.isArray(x)) {
-        return "[" + arrayToString(x) + "]";
-      } else if (typeof x === "object") {
-        let v = x;
-        try {
-          v = inspect(x, {
-            depth: 5,
-            compact: false,
-            colors: false,
-            getters: true,
-          });
-        } catch (e) {
-          // debug
-          Debug('@novice1/logger')(e);
-        }
-        return v;
-      } else {
-        return x;
+  const result: any[] = [];
+  for (const x of Array.from(arr)) {
+    if (Array.isArray(x)) {
+      result.push("[" + arrayToString(x) + "]");
+    } else if (typeof x === "object") {
+      let v = x;
+      try {
+        v = universalInspect(x, {
+          depth: 5,
+          compact: false,
+          colors: false,
+          getters: true,
+        });
+      } catch (e) {
+        // debug
+        Debug('@novice1/logger')(e);
       }
-    })
-    .join(" ");
+      result.push(v);
+    } else {
+      result.push(x);
+    }
+  }
+  return result.join(" ");
 }
 
 /**
@@ -87,14 +267,14 @@ function colorText(txt: string, color?: number) {
 Debug.formatters.P = (v) => {
   try {
     v = arrayToString([v]);
-  } catch(e){}
+  } catch (e) { }
   return v;
 }
 
 Debug.formatters.p = (v) => {
   try {
     v = arrayToStringCompact([v]);
-  } catch(e){}
+  } catch (e) { }
   return v;
 }
 //#endregion
@@ -177,6 +357,44 @@ function initLoggerLevel(logger: object): void {
 //#region Printers
 
 /**
+ * Writes the given string to the standard error output.
+ * 
+ * @param p The string to write to stderr.
+ */
+function stderrWrite(p: string): void {
+  if (CACHED_UTILS.terminal) {
+    CACHED_UTILS.terminal.stderr(p);
+    return;
+  }
+  if (TERMINALS.deno.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.deno;
+    CACHED_UTILS.terminal.stderr(p);
+  } else if (TERMINALS.node.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.node;
+    CACHED_UTILS.terminal.stderr(p);
+  }
+}
+
+/**
+ * Writes the given string to the standard output.
+ * 
+ * @param p The string to write to stdout.
+ */
+function stdoutWrite(p: string): void {
+  if (CACHED_UTILS.terminal) {
+    CACHED_UTILS.terminal.stdout(p);
+    return;
+  }
+  if (TERMINALS.deno.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.deno;
+    CACHED_UTILS.terminal.stdout(p);
+  } else if (TERMINALS.node.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.node;
+    CACHED_UTILS.terminal.stdout(p);
+  }
+}
+
+/**
  * 
  * Format message and execute `logger.write` or `process.stdout.write`
  * 
@@ -225,9 +443,9 @@ function doLog(
     });
   } else {
     if (name === 'error') {
-      process.stderr.write(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+      stderrWrite(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
     } else {
-      process.stdout.write(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+      stdoutWrite(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
     }
   }
 }
