@@ -718,15 +718,6 @@ Object.defineProperty(Logger, 'levels', {
   enumerable: true      // Keeps it visible in loops/Object.keys()
 });
 
-/*
-Logger.error = error;
-Logger.warn = warn;
-Logger.info = info;
-Logger.log = log;
-Logger.verbose = log;
-Logger.debug = debug;
-Logger.trace = trace;
-*/
 initLoggerPrinters(Logger);
 Object.defineProperty(Logger, 'print', {
   value: print,
@@ -741,60 +732,63 @@ Object.defineProperty(Logger, 'println', {
   enumerable: true
 });
 
-Logger.formatMessage = function (messageArray: any[], singleLine?: boolean): string {
-  return singleLine ? arrayToStringCompact(messageArray) : arrayToString(messageArray);
-};
+// Logger.formatMessage
+Object.defineProperty(Logger, 'formatMessage', {
+  value: function (messageArray: any[], singleLine?: boolean): string {
+    return singleLine ? arrayToStringCompact(messageArray) : arrayToString(messageArray);
+  },
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
-Logger.createLogger = function (opts: Logger.CreateLoggerOptions | null = DEFAULT_OPTS): Logger.CustomLogger {
-  const options = opts || DEFAULT_OPTS;
-  const levels = options.levels || {};
-  const extend = typeof options.extend === 'function' ? options.extend : null;
+// Logger.createLogger
+Object.defineProperty(Logger, 'createLogger', {
+  value: function (opts: Logger.CreateLoggerOptions | null = { ...DEFAULT_OPTS }): Logger.CustomLogger {
+    const options = opts || { ...DEFAULT_OPTS };
+    const levels = options.levels || {};
+    const extend = typeof options.extend === 'function' ? options.extend : null;
 
-  const customLogger = function (...args: any[]): void {
-    customLogger.log(...args);
-  } as Logger.CustomLogger;
+    const customLogger = function (...args: any[]): void {
+      customLogger.log(...args);
+    } as Logger.CustomLogger;
 
-  customLogger.write = typeof options.write === 'function' ? options.write : null;
-  customLogger.alwaysFormat = true;
-  customLogger.singleLine = false;
+    customLogger.write = typeof options.write === 'function' ? options.write : null;
+    customLogger.alwaysFormat = true;
+    customLogger.singleLine = false;
 
-  /*
-  customLogger.error = error;
-  customLogger.warn = warn;
-  customLogger.info = info;
-  customLogger.log = log;
-  customLogger.verbose = log;
-  customLogger.debug = debug;
-  customLogger.trace = trace;
-  */
-  initLoggerPrinters(customLogger);
+    initLoggerPrinters(customLogger);
 
-  customLogger.custom = function (name: string, ...rest: any[]): void {
-    const ctx = customLogger as unknown as LoggerContext;
-    const level = levels[name];
-    if (level) {
-      // custom level
-      const lvl = typeof level.level === 'number' ? level.level : LogLevel.trace;
-      if (ctx._level >= lvl) {
-        customLevelPrint.call(ctx, level.color || Colors.RESET, name, ...rest);
+    customLogger.custom = function (name: string, ...rest: any[]): void {
+      const ctx = customLogger as unknown as LoggerContext;
+      const level = levels[name];
+      if (level) {
+        // custom level
+        const lvl = typeof level.level === 'number' ? level.level : LogLevel.trace;
+        if (ctx._level >= lvl) {
+          customLevelPrint.call(ctx, level.color || Colors.RESET, name, ...rest);
+        }
+      } else if (typeof (customLogger as any)[name] === 'function') {
+        // default level
+        (customLogger as any)[name](...rest);
+      } else {
+        // default log
+        customLogger(name, ...rest);
       }
-    } else if (typeof (customLogger as any)[name] === 'function') {
-      // default level
-      (customLogger as any)[name](...rest);
-    } else {
-      // default log
-      customLogger(name, ...rest);
-    }
-  };
+    };
 
-  customLogger.extend = function (...args: any[]): any {
-    return extend ? extend({ args }) : Logger.createLogger(options);
-  };
+    customLogger.extend = function (...args: any[]): any {
+      return extend ? extend({ args }) : Logger.createLogger(options);
+    };
 
-  initLoggerLevel(customLogger);
+    initLoggerLevel(customLogger);
 
-  return customLogger;
-};
+    return customLogger;
+  },
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
 //#endregion
 
@@ -820,8 +814,14 @@ function decorateDebugger(dbg: Debug.Debugger): Logger.Debugger {
   return customLogger as unknown as Logger.Debugger;
 }
 
-Logger.debugger = function (namespace: string): Logger.Debugger {
-  return decorateDebugger(Debug(namespace));
-};
+// Logger.debugger
+Object.defineProperty(Logger, 'debugger', {
+  value: function (namespace: string): Logger.Debugger {
+    return decorateDebugger(Debug(namespace));
+  },
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
 //#endregion
