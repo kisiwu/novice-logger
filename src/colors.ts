@@ -1,4 +1,4 @@
-export const Colors = {
+export const Colors = Object.freeze({
   RESET: 0,
   BRIGHT: 1,
   DIM: 2,
@@ -26,7 +26,7 @@ export const Colors = {
   BG_CYAN: 46,
   BG_WHITE: 47,
   BG_DEFAULT: 49
-} as const;
+} as const);
 
 export type ColorName = keyof typeof Colors;
 export type ColorValue = typeof Colors[ColorName];

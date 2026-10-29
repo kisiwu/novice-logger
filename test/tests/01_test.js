@@ -103,6 +103,55 @@ describe("Test", () => {
     assert.strictEqual(single, 'one 2 { three: [ \'four\', 5 ] }');
   });
 
+  it('should render stdout and stderr', function(){
+    Logger.writeStdout('\tThis should go to stdout\n');
+    Logger.writeStderr('\tThis should go to stderr\n');
+  });
+
+  it('should throw an error if writeStderr is used inappropriately', function(){
+    assert.throws(() => {
+      Logger.writeStderr();
+    }, /ERR_INVALID_ARG_TYPE/);
+    assert.throws(() => {
+      Logger.writeStderr(2);
+    }, /ERR_INVALID_ARG_TYPE/);
+    assert.throws(() => {
+      Logger.writeStderr({});
+    }, /ERR_INVALID_ARG_TYPE/);
+  });
+
+  it('should throw an error if writeStdout is used inappropriately', function(){
+    assert.throws(() => {
+      Logger.writeStdout();
+    }, /ERR_INVALID_ARG_TYPE/);
+    assert.throws(() => {
+      Logger.writeStdout(1);
+    }, /ERR_INVALID_ARG_TYPE/);
+    assert.throws(() => {
+      Logger.writeStdout({});
+    }, /ERR_INVALID_ARG_TYPE/);
+  });
+
+  it('should have immutable log levels', function(){
+    assert.strictEqual(Logger.levels.debug, 4);
+    Logger.levels.debug = 8; // attempt to modify the debug level, should not succeed
+    assert.strictEqual(Logger.levels.debug, 4); // verify that the debug level remains unchanged
+    Logger.levels = {}; // attempt to overwrite the levels object, should not succeed
+    assert.strictEqual(Logger.levels.debug, 4);
+    delete Logger.levels; // attempts to delete the levels object, should not succeed
+    assert.strictEqual(Logger.levels.debug, 4);
+  });
+
+  it('should have immutable color flags', function(){
+    assert.strictEqual(Logger.colors.FG_RED, 31); // example color flag
+    Logger.colors.FG_RED = 99; // attempt to modify the color flag, should not succeed
+    assert.strictEqual(Logger.colors.FG_RED, 31); // verify that the color flag remains unchanged
+    Logger.colors = {}; // attempt to overwrite the colors object, should not succeed
+    assert.strictEqual(Logger.colors.FG_RED, 31);
+    delete Logger.colors; // attempts to delete the colors object, should not succeed
+    assert.strictEqual(Logger.colors.FG_RED, 31);
+  });
+
   it('should be done', function(){
     Logger('we should be done here');
   });

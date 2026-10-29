@@ -360,7 +360,7 @@ function initLoggerLevel(logger: object): void {
  * 
  * @param p The string to write to stderr.
  */
-function stderrWrite(p: string): void {
+function writeStderr(p: string): void {
   if (CACHED_UTILS.terminal) {
     CACHED_UTILS.terminal.stderr(p);
     return;
@@ -379,7 +379,7 @@ function stderrWrite(p: string): void {
  * 
  * @param p The string to write to stdout.
  */
-function stdoutWrite(p: string): void {
+function writeStdout(p: string): void {
   if (CACHED_UTILS.terminal) {
     CACHED_UTILS.terminal.stdout(p);
     return;
@@ -395,7 +395,7 @@ function stdoutWrite(p: string): void {
 
 /**
  * 
- * Format message and execute `logger.write` or `process.stdout.write`
+ * Format message and execute `logger.write` or `writeStderr`/`writeStdout` depending on the log level.
  * 
  * @param logger 
  * @param colorNumber 
@@ -442,9 +442,9 @@ function doLog(
     });
   } else {
     if (name === 'error') {
-      stderrWrite(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+      writeStderr(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
     } else {
-      stdoutWrite(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+      writeStdout(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
     }
   }
 }
@@ -497,6 +497,55 @@ function println(this: LoggerContext, color: number, ...args: any[]): void {
 
 function customLevelPrint(this: LoggerContext, color: number, name: string, ...args: any[]): void {
   doLog(this, color, name, args, this.write, this.alwaysFormat);
+}
+
+//#endregion
+
+//#region Init Logger Printers
+
+function initLoggerPrinters(logger: Logger.CustomLogger | Logger.LoggerStatic): void {
+  Object.defineProperty(logger, 'error', {
+    value: error,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'warn', {
+    value: warn,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'info', {
+    value: info,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'log', {
+    value: log,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'verbose', {
+    value: log,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'debug', {
+    value: debug,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'trace', {
+    value: trace,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
 }
 
 //#endregion
@@ -563,8 +612,28 @@ declare namespace Logger {
   export interface LoggerStatic extends LevelControl {
     (...args: any[]): void;
     readonly write: undefined;
-    colors: typeof Colors;
-    levels: typeof LogLevel;
+    /**
+     * Tries to write to stderr.
+     * 
+     * Use it only if you know what you are doing. 
+     * Using it incorrectly may lead to unexpected behavior.
+     */
+    writeStderr: (p: string) => void;
+    /**
+     * Tries to write to stdout.
+     * 
+     * Use it only if you know what you are doing. 
+     * Using it incorrectly may lead to unexpected behavior.
+     */
+    writeStdout: (p: string) => void;
+    /**
+     * The available color codes for log messages.
+     */
+    readonly colors: typeof Colors;
+    /**
+     * The available log levels for the logger.
+     */
+    readonly levels: typeof LogLevel;
     error: LogFunction;
     warn: LogFunction;
     info: LogFunction;
@@ -572,10 +641,39 @@ declare namespace Logger {
     log: LogFunction;
     verbose: LogFunction;
     trace: LogFunction;
+    /**
+     * Prints a message to the console with the specified color.
+     * 
+     * @param color The color code to use for the message.
+     * @param args The arguments to print.
+     */
     print(color: number, ...args: any[]): void;
+    /**
+     * Prints a message to the console with the specified color, followed by a newline.
+     * 
+     * @param color The color code to use for the message.
+     * @param args The arguments to print.
+     */
     println(color: number, ...args: any[]): void;
+    /**
+     * Formats a message array into a string.
+     * 
+     * @param message The message array to format.
+     * @param singleLine Whether to format the message as a single line.
+     * @returns The formatted message string.
+     */
     formatMessage(message: any[], singleLine?: boolean): string;
+    /**
+     * Creates a custom logger instance with the specified options.
+     * 
+     * @param options The options to configure the custom logger instance.
+     */
     createLogger(options?: CreateLoggerOptions | null): CustomLogger;
+    /**
+     * Creates a debugger instance with the specified namespace.
+     * 
+     * @param namespace The namespace for the debugger instance.
+     */
     debugger(namespace: string): Debugger;
   }
 }
@@ -586,27 +684,62 @@ export const Logger: Logger.LoggerStatic = function (...args: any[]): void {
   Logger.log(...args);
 } as Logger.LoggerStatic;
 
-// cannot overwrite "write" from default logger
+// cannot overwrite `write`, `writeStderr`, `writeStdout` from default logger
 Object.defineProperty(Logger, 'write', {
   value: undefined,
   configurable: false,
   enumerable: false,
   writable: false
 });
+Object.defineProperty(Logger, 'writeStderr', {
+  value: writeStderr,
+  configurable: false,
+  enumerable: false,
+  writable: false
+});
+Object.defineProperty(Logger, 'writeStdout', {
+  value: writeStdout,
+  configurable: false,
+  enumerable: false,
+  writable: false
+});
 initLoggerLevel(Logger);
 
-Logger.colors = Colors;
-Logger.levels = LogLevel;
+Object.defineProperty(Logger, 'colors', {
+  value: Colors,
+  writable: false,      // Cannot change the value
+  configurable: false,  // Cannot delete the property or change its settings
+  enumerable: true      // Keeps it visible in loops/Object.keys()
+});
+Object.defineProperty(Logger, 'levels', {
+  value: LogLevel,
+  writable: false,      // Cannot change the value
+  configurable: false,  // Cannot delete the property or change its settings
+  enumerable: true      // Keeps it visible in loops/Object.keys()
+});
 
+/*
 Logger.error = error;
 Logger.warn = warn;
 Logger.info = info;
-Logger.debug = debug;
 Logger.log = log;
 Logger.verbose = log;
+Logger.debug = debug;
 Logger.trace = trace;
-Logger.print = print;
-Logger.println = println;
+*/
+initLoggerPrinters(Logger);
+Object.defineProperty(Logger, 'print', {
+  value: print,
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
+Object.defineProperty(Logger, 'println', {
+  value: println,
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
 Logger.formatMessage = function (messageArray: any[], singleLine?: boolean): string {
   return singleLine ? arrayToStringCompact(messageArray) : arrayToString(messageArray);
@@ -625,6 +758,7 @@ Logger.createLogger = function (opts: Logger.CreateLoggerOptions | null = DEFAUL
   customLogger.alwaysFormat = true;
   customLogger.singleLine = false;
 
+  /*
   customLogger.error = error;
   customLogger.warn = warn;
   customLogger.info = info;
@@ -632,6 +766,8 @@ Logger.createLogger = function (opts: Logger.CreateLoggerOptions | null = DEFAUL
   customLogger.verbose = log;
   customLogger.debug = debug;
   customLogger.trace = trace;
+  */
+  initLoggerPrinters(customLogger);
 
   customLogger.custom = function (name: string, ...rest: any[]): void {
     const ctx = customLogger as unknown as LoggerContext;
