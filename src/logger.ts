@@ -754,32 +754,64 @@ Object.defineProperty(Logger, 'createLogger', {
     } as Logger.CustomLogger;
 
     customLogger.write = typeof options.write === 'function' ? options.write : null;
-    customLogger.alwaysFormat = true;
-    customLogger.singleLine = false;
+
+    let _alwaysFormat = true;
+    let _singleLine = false;
+    Object.defineProperty(customLogger, 'alwaysFormat', {
+      get(this: Logger.CustomLogger) {
+        return _alwaysFormat;
+      },
+      set(this: Logger.CustomLogger, value: boolean) {
+        if (typeof value === 'boolean') {
+          _alwaysFormat = value;
+        }
+      },
+      enumerable: true
+    });
+    Object.defineProperty(customLogger, 'singleLine', {
+      get(this: Logger.CustomLogger) {
+        return _singleLine;
+      },
+      set(this: Logger.CustomLogger, value: boolean) {
+        if (typeof value === 'boolean') {
+          _singleLine = value;
+        }
+      },
+      enumerable: true
+    });
 
     initLoggerPrinters(customLogger);
 
-    customLogger.custom = function (name: string, ...rest: any[]): void {
-      const ctx = customLogger as unknown as LoggerContext;
-      const level = levels[name];
-      if (level) {
-        // custom level
-        const lvl = typeof level.level === 'number' ? level.level : LogLevel.trace;
-        if (ctx._level >= lvl) {
-          customLevelPrint.call(ctx, level.color || Colors.RESET, name, ...rest);
+    Object.defineProperty(customLogger, 'custom', {
+      value: function (name: string, ...rest: any[]): void {
+        const ctx = customLogger as unknown as LoggerContext;
+        const level = levels[name];
+        if (level) {
+          // custom level
+          const lvl = typeof level.level === 'number' ? level.level : LogLevel.trace;
+          if (ctx._level >= lvl) {
+            customLevelPrint.call(ctx, level.color || Colors.RESET, name, ...rest);
+          }
+        } else if (typeof (customLogger as any)[name] === 'function') {
+          // default level
+          (customLogger as any)[name](...rest);
+        } else {
+          // default log
+          customLogger(name, ...rest);
         }
-      } else if (typeof (customLogger as any)[name] === 'function') {
-        // default level
-        (customLogger as any)[name](...rest);
-      } else {
-        // default log
-        customLogger(name, ...rest);
-      }
-    };
-
-    customLogger.extend = function (...args: any[]): any {
-      return extend ? extend({ args }) : Logger.createLogger(options);
-    };
+      },
+      configurable: false,
+      writable: false,
+      enumerable: true
+    });
+    Object.defineProperty(customLogger, 'extend', {
+      value: function (...args: any[]): any {
+        return extend ? extend({ args }) : Logger.createLogger(options);
+      },
+      configurable: false,
+      writable: false,
+      enumerable: true
+    });
 
     initLoggerLevel(customLogger);
 
