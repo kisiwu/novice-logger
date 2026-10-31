@@ -1,7 +1,7 @@
 {
   "name": "@novice1/logger",
   "private": false,
-  "version": "2.0.1-alpha.1",
+  "version": "2.0.1-alpha.2",
   "description": "Logging utility",
   "keywords": [
     "logger",
@@ -10,26 +10,34 @@
     "debug",
     "logging"
   ],
+  "type": "module",
   "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs",
+      "default": "./lib/index.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/kisiwu/novice-logger.git"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsdown src/**/*.ts --format cjs,esm --out-dir lib --clean --dts --sourcemap --unbundle --no-fixed-extension",
     "check": "tsc --noEmit",
-    "test": "mocha --config test/config/.mocharc.js"
+    "test": "mocha --config test/config/.mocharc.js",
+    "test:cjs": "mocha --config test/config/.mocharc.cjs"
   },
   "author": "demingongo",
   "license": "MIT",
-  "dependencies": {
-    "tslib": "^2.8.1"
-  },
   "devDependencies": {
     "@types/debug": "^4.1.13",
     "@types/node": "^26.6.5",
     "debug": "^4.4.3",
     "mocha": "^12.0.3",
+    "tsdown": "^0.23.4",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {

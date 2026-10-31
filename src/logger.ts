@@ -1,6 +1,8 @@
+import process from 'node:process';
+import { createRequire } from 'node:module'
 import Debug from 'debug'
-import { Colors } from './colors'
-import { LogLevel, LogLevelValue, type LogLevelType } from './levels'
+import { Colors } from './colors.js'
+import { LogLevel, type LogLevelValue, type LogLevelType } from './levels.js'
 
 //#region Declarations and Interfaces for runtime-specific utilities
 
@@ -47,6 +49,18 @@ interface Terminal {
 //#endregion
 
 //#region Utilities for runtime-specific functions
+
+const mod: {
+  _nodeRequire?: ((id: string) => any) | undefined;
+  require: (id: string) => any;
+} = {
+  require(id: string) {
+    if (!mod._nodeRequire) {
+      mod._nodeRequire = createRequire(import.meta.url);
+    }
+    return mod._nodeRequire(id);
+  }
+};
 
 /**
  * Cached utilities for runtime-specific functions like inspect and write operations.
@@ -103,7 +117,7 @@ const INSPECTORS: {
 
   node: {
     inspect: (obj: any, options: InspectOptions): string => {
-      const { inspect } = module.require('util');
+      const { inspect } = mod.require('node:util');
       return inspect(obj, {
         depth: options.depth,
         compact: options.compact,
@@ -112,7 +126,7 @@ const INSPECTORS: {
         getters: options.getters,
       });
     },
-    isAvailable: () => typeof module !== 'undefined' && typeof module.require === 'function'
+    isAvailable: () => typeof process !== 'undefined' && typeof process.versions !== 'undefined' && typeof process.versions.node !== 'undefined'
   },
 
   fallback: {

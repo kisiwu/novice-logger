@@ -3,6 +3,7 @@ test
 src/
 old-lib/
 tsconfig.json
+tsconfig.*.json
 
 private
 

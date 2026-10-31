@@ -1,12 +1,12 @@
 'use strict';
 
-module.exports = {
+export default {
   bail: false,
   fullTrace: true,
   grep: '',
   ignoreLeaks: false,
   reporter: 'spec',
-  spec: 'test/tests/*.js',
+  spec: 'test/tests/*.test.js',
   retries: 0,
   slow: 100,
   timeout: 2500,

@@ -1,6 +1,6 @@
 # @novice1/logger
 
-A JavaScript logging utility that prefixes logs and colors them if stdout/stderr is a TTY. Works in Node.js.
+A JavaScript logging utility that prefixes logs and colors them if stdout/stderr is a TTY. Works in Node.js, Bun and Deno.
 
 ## Table of contents
 
@@ -26,7 +26,7 @@ npm install @novice1/logger
 Once imported, use the function as it is or use its methods to log.
 
 ```js
-const { Logger } = require('@novice1/logger');
+import { Logger } from '@novice1/logger';
 
 // white
 Logger('verbose log');
@@ -65,7 +65,7 @@ Logger.error('error log');
 Choose your own colors with the methods `print` and `println`. Available colors are in the property `colors`.
 
 ```js
-const { Logger } = require('@novice1/logger');
+import { Logger } from '@novice1/logger';
 
 // green
 Logger.print(Logger.colors.FG_GREEN, 'green', 'message');
@@ -101,7 +101,7 @@ By priority:
 > **Note:** `print` and `println` are at level `trace`: they only print when the logger level is `trace`.
 
 ```js
-const { Logger } = require('@novice1/logger');
+import { Logger } from '@novice1/logger';
 
 // set level to info
 Logger.setLevel(Logger.levels.info);
@@ -123,10 +123,11 @@ It can be used with the package [`debug`](https://www.npmjs.com/package/debug). 
 [`debug`](https://www.npmjs.com/package/debug) properties and methods are available from the property `Debug`.
 
 ```js
-// enable 'app:*'
-require('@novice1/logger').Debug.enable('app:*');
+import { Logger, Debug } from '@novice1/logger';
 
-const { Logger } = require('@novice1/logger');
+// enable 'app:*'
+Debug.enable('app:*');
+
 const logger = Logger.debugger('app:log');
 logger('verbose log');
 logger.log('verbose log');
@@ -139,10 +140,11 @@ logger.error('error log');
 ### Extending a debugger
 
 ```js
-// enable 'auth:*'
-require('@novice1/logger').Debug.enable('auth:*');
+import { Logger, Debug } from '@novice1/logger';
 
-const { Logger } = require('@novice1/logger');
+// enable 'auth:*'
+Debug.enable('auth:*');
+
 const logger = Logger.debugger('auth');
 
 // extend namespace
@@ -181,7 +183,7 @@ Other formatters:
 You can create a custom logger with its own levels, print function (= write) and more.
 
 ```js
-const { Logger } = require('@novice1/logger');
+import { Logger } from '@novice1/logger';
 
 // create custom logger
 const customLogger = Logger.createLogger({
@@ -225,4 +227,13 @@ customLogger.error('error log');
 
 // custom level print
 customLogger.custom('success', 'everything is good');
+```
+
+## Deno
+
+In Deno you must enable the flag `--allow-env` to allow access to environment variables (required by `debug`).
+
+Example:
+```bash
+deno run --allow-env your_script.ts
 ```
