@@ -5,7 +5,7 @@ name: Node.js CI
 
 on:
   push:
-    branches: [ master, typescript ]
+    branches: [ master, typescript, typescript-tsdown ]
   pull_request:
     branches: [ master ]
 
