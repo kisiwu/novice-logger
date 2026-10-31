@@ -26,6 +26,9 @@
     "type": "git",
     "url": "https://github.com/kisiwu/novice-logger.git"
   },
+  "engines": {
+    "node": ">=21"
+  },
   "scripts": {
     "build": "tsdown src/**/*.ts --format cjs,esm --out-dir lib --clean --dts --sourcemap --unbundle --no-fixed-extension",
     "check": "tsc --noEmit",
