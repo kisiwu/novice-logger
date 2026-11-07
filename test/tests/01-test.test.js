@@ -75,7 +75,10 @@ describe("Test", () => {
         }
       }
     });
-    
+
+    // enable color if the terminal supports it
+    customLogger.color = process.env.DEBUG_COLORS === '1' || !!process.stdout.isTTY;
+
     // print objects on a single line
     customLogger.singleLine = true;
     customLogger('verbose log');

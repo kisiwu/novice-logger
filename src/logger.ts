@@ -324,6 +324,7 @@ type LoggerContext = {
   write?: WriteFunction | null;
   singleLine?: boolean;
   alwaysFormat?: boolean;
+  color?: boolean;
 }
 
 //#endregion
@@ -434,6 +435,7 @@ function doLog(
 ): void {
   const write = logger?.write;
   const singleLine = logger?.singleLine;
+  const color = typeof logger?.color === 'boolean' ? logger.color : true;
 
   function getFormattedMessage(): string {
     let processedArguments = '';
@@ -442,13 +444,13 @@ function doLog(
     } catch (e) {
       // ignore
     }
-    return colorText(processedArguments, colorNumber);
+    return color ? colorText(processedArguments, colorNumber) : processedArguments;
   }
 
   function getFullFormattedMessage(): string {
     let formattedMessage = getFormattedMessage();
     if (name) {
-      formattedMessage = `${colorText(name, colorNumber)} : ${formattedMessage}`;
+      formattedMessage = `${color ? colorText(name, colorNumber) : name} : ${formattedMessage}`;
     }
     return formattedMessage;
   }
@@ -458,7 +460,7 @@ function doLog(
       args: Array.from(args),
       level: name || '',
       message: alwaysFormat ? getFormattedMessage() : '',
-      prefixText: name ? colorText(name, colorNumber) : ''
+      prefixText: name ? (color ? colorText(name, colorNumber) : name) : ''
     });
   } else {
     if (name === 'error') {
@@ -617,6 +619,7 @@ declare namespace Logger {
     (...args: any[]): void;
     write: WriteFunction | null;
     alwaysFormat: boolean;
+    color: boolean;
     singleLine: boolean;
     error: LogFunction;
     warn: LogFunction;
@@ -776,6 +779,7 @@ Object.defineProperty(Logger, 'createLogger', {
     customLogger.write = typeof options.write === 'function' ? options.write : null;
 
     let _alwaysFormat = true;
+    let _color = true;
     let _singleLine = false;
     Object.defineProperty(customLogger, 'alwaysFormat', {
       get(this: Logger.CustomLogger) {
@@ -784,6 +788,17 @@ Object.defineProperty(Logger, 'createLogger', {
       set(this: Logger.CustomLogger, value: boolean) {
         if (typeof value === 'boolean') {
           _alwaysFormat = value;
+        }
+      },
+      enumerable: true
+    });
+    Object.defineProperty(customLogger, 'color', {
+      get(this: Logger.CustomLogger) {
+        return _color;
+      },
+      set(this: Logger.CustomLogger, value: boolean) {
+        if (typeof value === 'boolean') {
+          _color = value;
         }
       },
       enumerable: true
