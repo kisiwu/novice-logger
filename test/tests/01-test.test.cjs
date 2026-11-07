@@ -1,5 +1,6 @@
 const { Logger } = require('../../lib/index.cjs');
 const assert = require('node:assert');
+const { describe, it } = require('node:test');
 
 describe("Test", () => {
 

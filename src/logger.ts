@@ -11,8 +11,8 @@ import { LogLevel, type LogLevelValue, type LogLevelType } from './levels.js'
  */
 declare const Deno: {
   inspect(obj: any, options: InspectOptions): string;
-  stdout: { writeSync(p: Uint8Array): Promise<number>; };
-  stderr: { writeSync(p: Uint8Array): Promise<number>; };
+  stdout: { writeSync(p: Uint8Array): Promise<number>; isTerminal(): boolean; };
+  stderr: { writeSync(p: Uint8Array): Promise<number>; isTerminal(): boolean; };
 };
 
 declare const Bun: {
@@ -41,6 +41,8 @@ interface TerminalWriteFunction {
 }
 
 interface Terminal {
+  // stdoutIsTTY: () => boolean;
+  // stderrIsTTY: () => boolean;
   isAvailable: () => boolean;
   stderr: TerminalWriteFunction;
   stdout: TerminalWriteFunction;
@@ -148,6 +150,8 @@ const TERMINALS: {
   node: Terminal;
 } = {
   deno: {
+    // stdoutIsTTY: () => typeof Deno !== 'undefined' && typeof Deno.stdout !== 'undefined' && typeof Deno.stdout.isTerminal === 'function' && Deno.stdout.isTerminal(),
+    // stderrIsTTY: () => typeof Deno !== 'undefined' && typeof Deno.stderr !== 'undefined' && typeof Deno.stderr.isTerminal === 'function' && Deno.stderr.isTerminal(),
     isAvailable: () => typeof Deno !== 'undefined' &&
       Deno.stdout && typeof Deno.stdout.writeSync === 'function' &&
       Deno.stderr && typeof Deno.stderr.writeSync === 'function',
@@ -155,6 +159,8 @@ const TERMINALS: {
     stdout: (p: string) => { Deno.stdout.writeSync(new TextEncoder().encode(p)) },
   },
   node: {
+    // stdoutIsTTY: () => typeof process !== 'undefined' && typeof process.stdout.isTTY === 'boolean' && process.stdout.isTTY,
+    // stderrIsTTY: () => typeof process !== 'undefined' && typeof process.stderr.isTTY === 'boolean' && process.stderr.isTTY,
     isAvailable: () => typeof process !== 'undefined' &&
       process.stdout && typeof process.stdout.write === 'function' &&
       process.stderr && typeof process.stderr.write === 'function',

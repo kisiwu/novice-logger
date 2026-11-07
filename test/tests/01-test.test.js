@@ -1,5 +1,6 @@
 import { Logger } from '../../lib/index.js';
 import assert from 'node:assert';
+import { describe, it } from 'node:test';
 
 describe("Test", () => {
 
