@@ -64,20 +64,37 @@ describe("Test", () => {
         }
       },
       /**
-       * Overwrite the default function
+       * Overwrite the default function.
+       * 
+       * - process.stdout becomes non-blocking: 
+       * When redirected to a pipe, process.stdout.write becomes 
+       * entirely asynchronous in Node.js. It buffers data in memory 
+       * and flushes it when the pipe has room.
+       * 
+       * - process.stderr remains blocking (blocking I/O):                             
+       * By operating system conventions, process.stderr usually stays blocking      
+       * (or flushes much more aggressively) to ensure diagnostics get out instantly.
+       * Useful when needing asynchronous process (e.g. child processes) to ensure   
+       * logs are written in order (e.g. when running node --test).
        */
       write({ args, level, message, prefixText }) {
         const msg = `custom ${prefixText} - ${message}`;
         if (level === 'error') {
           console.error(msg);
         } else {
-          console.log(msg);
+          // fallback to stderr for non-error levels
+          // process.stderr remains blocking (blocking I/O): 
+          // By operating system conventions, process.stderr usually stays blocking 
+          // (or flushes much more aggressively) to ensure diagnostics get out instantly.
+          // Useful when needing asynchronous process (e.g. child processes) to ensure 
+          // logs are written in order (e.g. when running node --test).
+          console.error(msg);
         }
       }
     });
 
-    // enable color if the terminal supports it
-    customLogger.color = process.env.DEBUG_COLORS === '1' || !!process.stdout.isTTY;
+    // enable color if DEBUG_COLORS is set or if the terminal supports it
+    customLogger.color = process.env.DEBUG_COLORS === '1' || undefined;
     
     // print objects on a single line
     customLogger.singleLine = true;
@@ -98,9 +115,9 @@ describe("Test", () => {
     const message = ['one', 2, {three: ['four', 5]}]
     const multi = Logger.formatMessage(message);
     const single = Logger.formatMessage(message, true);
-    console.log('message:', message);
-    console.log('multiple lines:', multi);
-    console.log('single line:', single);
+    console.error('message:', message);
+    console.error('multiple lines:', multi);
+    console.error('single line:', single);
 
     assert.ok(multi.includes('\n'), 'multi-line output should contain newlines');
     assert.ok(!single.includes('\n'), 'single-line output should not contain newlines');

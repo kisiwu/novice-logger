@@ -41,8 +41,7 @@ interface TerminalWriteFunction {
 }
 
 interface Terminal {
-  // stdoutIsTTY: () => boolean;
-  // stderrIsTTY: () => boolean;
+  isTTY: () => boolean;
   isAvailable: () => boolean;
   stderr: TerminalWriteFunction;
   stdout: TerminalWriteFunction;
@@ -150,8 +149,13 @@ const TERMINALS: {
   node: Terminal;
 } = {
   deno: {
-    // stdoutIsTTY: () => typeof Deno !== 'undefined' && typeof Deno.stdout !== 'undefined' && typeof Deno.stdout.isTerminal === 'function' && Deno.stdout.isTerminal(),
-    // stderrIsTTY: () => typeof Deno !== 'undefined' && typeof Deno.stderr !== 'undefined' && typeof Deno.stderr.isTerminal === 'function' && Deno.stderr.isTerminal(),
+    isTTY: () => typeof Deno !== 'undefined' &&
+      typeof Deno.stdout !== 'undefined' &&
+      typeof Deno.stdout.isTerminal === 'function' &&
+      Deno.stdout.isTerminal() &&
+      typeof Deno.stderr !== 'undefined' &&
+      typeof Deno.stderr.isTerminal === 'function' &&
+      Deno.stderr.isTerminal(),
     isAvailable: () => typeof Deno !== 'undefined' &&
       Deno.stdout && typeof Deno.stdout.writeSync === 'function' &&
       Deno.stderr && typeof Deno.stderr.writeSync === 'function',
@@ -159,8 +163,13 @@ const TERMINALS: {
     stdout: (p: string) => { Deno.stdout.writeSync(new TextEncoder().encode(p)) },
   },
   node: {
-    // stdoutIsTTY: () => typeof process !== 'undefined' && typeof process.stdout.isTTY === 'boolean' && process.stdout.isTTY,
-    // stderrIsTTY: () => typeof process !== 'undefined' && typeof process.stderr.isTTY === 'boolean' && process.stderr.isTTY,
+    isTTY: () => typeof process !== 'undefined' &&
+      typeof process.stdout !== 'undefined' &&
+      typeof process.stdout.isTTY === 'boolean' &&
+      process.stdout.isTTY &&
+      typeof process.stderr !== 'undefined' &&
+      typeof process.stderr.isTTY === 'boolean' &&
+      process.stderr.isTTY,
     isAvailable: () => typeof process !== 'undefined' &&
       process.stdout && typeof process.stdout.write === 'function' &&
       process.stderr && typeof process.stderr.write === 'function',
@@ -278,6 +287,20 @@ function arrayToString(arr: Array<any>): string {
  */
 function colorText(txt: string, color?: number) {
   return `\x1b[${color || 0}m${txt}\x1b[0m`
+}
+
+function isTTY(): boolean {
+  if (CACHED_UTILS.terminal) {
+    return CACHED_UTILS.terminal.isTTY();
+  }
+  if (TERMINALS.deno.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.deno;
+    return CACHED_UTILS.terminal.isTTY();
+  } else if (TERMINALS.node.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.node;
+    return CACHED_UTILS.terminal.isTTY();
+  }
+  return false;
 }
 
 //#endregion
@@ -435,7 +458,7 @@ function doLog(
 ): void {
   const write = logger?.write;
   const singleLine = logger?.singleLine;
-  const color = typeof logger?.color === 'boolean' ? logger.color : true;
+  const color = typeof logger?.color === 'boolean' ? logger.color : isTTY();
 
   function getFormattedMessage(): string {
     let processedArguments = '';
@@ -612,6 +635,9 @@ declare namespace Logger {
         color?: number;
       };
     };
+    alwaysFormat?: boolean;
+    singleLine?: boolean;
+    color?: boolean;
     [x: string]: any;
   }
 
@@ -701,7 +727,13 @@ declare namespace Logger {
   }
 }
 
-const DEFAULT_OPTS: Logger.CreateLoggerOptions = { write: null, extend: null, levels: {} };
+const DEFAULT_OPTS: Logger.CreateLoggerOptions = { 
+  write: null, 
+  extend: null, 
+  levels: {}, 
+  alwaysFormat: true,
+  singleLine: false
+};
 
 export const Logger: Logger.LoggerStatic = function (...args: any[]): void {
   Logger.log(...args);
@@ -778,9 +810,9 @@ Object.defineProperty(Logger, 'createLogger', {
 
     customLogger.write = typeof options.write === 'function' ? options.write : null;
 
-    let _alwaysFormat = true;
-    let _color = true;
-    let _singleLine = false;
+    let _alwaysFormat = typeof options.alwaysFormat === 'boolean' ? options.alwaysFormat : DEFAULT_OPTS.alwaysFormat;
+    let _color = typeof options.color === 'boolean' ? options.color : isTTY();
+    let _singleLine = typeof options.singleLine === 'boolean' ? options.singleLine : DEFAULT_OPTS.singleLine;
     Object.defineProperty(customLogger, 'alwaysFormat', {
       get(this: Logger.CustomLogger) {
         return _alwaysFormat;
@@ -841,7 +873,14 @@ Object.defineProperty(Logger, 'createLogger', {
     });
     Object.defineProperty(customLogger, 'extend', {
       value: function (...args: any[]): any {
-        return extend ? extend({ args }) : Logger.createLogger(options);
+        return extend ? extend({ args }) : Logger.createLogger({
+          write: customLogger.write,
+          extend: null,
+          alwaysFormat: _alwaysFormat,
+          color: _color,
+          singleLine: _singleLine,
+          levels: levels,
+        });
       },
       configurable: false,
       writable: false,
