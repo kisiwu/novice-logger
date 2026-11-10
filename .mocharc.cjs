@@ -6,13 +6,13 @@ module.exports = {
   grep: '',
   ignoreLeaks: false,
   reporter: 'spec',
-  spec: 'test/tests/*.js',
+  spec: 'test/tests/*.test.cjs',
   retries: 0,
   slow: 100,
   timeout: 2500,
   ui: 'bdd',
   color: true,
   file: [
-    'test/pretest.js'
+    'test/pretest.cjs'
   ]
 };

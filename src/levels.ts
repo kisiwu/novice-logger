@@ -1,11 +1,11 @@
-export const LogLevel = {
+export const LogLevel = Object.freeze({
   error: 0,
   warn: 1,
   info: 2,
   verbose: 3,
   debug: 4,
   trace: 5
-} as const;
+} as const);
 
 export type LogLevelType = keyof typeof LogLevel;
 

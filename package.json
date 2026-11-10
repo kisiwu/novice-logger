@@ -1,7 +1,7 @@
 {
   "name": "@novice1/logger",
   "private": false,
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Logging utility",
   "keywords": [
     "logger",
@@ -10,26 +10,44 @@
     "debug",
     "logging"
   ],
-  "main": "lib/index.js",
+  "type": "module",
+  "main": "./lib/index.cjs",
+  "module": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs",
+      "default": "./lib/index.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/kisiwu/novice-logger.git"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsdown src/**/*.ts --format cjs,esm --out-dir lib --clean --dts --sourcemap --unbundle --no-fixed-extension",
     "check": "tsc --noEmit",
-    "test": "mocha --config test/config/.mocharc.js"
+    "test": "cross-env DEBUG_COLORS=1 node --import ./test/pretest.js --test --test-timeout=2500 test/tests/*.test.js",
+    "test:cjs": "cross-env DEBUG_COLORS=1 node --require ./test/pretest.cjs --test --test-timeout=2500 test/tests/*.test.cjs",
+    "test:no-color": "node --import ./test/pretest.js --test --test-timeout=2500 test/tests/*.test.js",
+    "test:no-color:cjs": "node --require ./test/pretest.cjs --test --test-timeout=2500 test/tests/*.test.cjs",
+    "test:mocha": "mocha --config .mocharc.js",
+    "test:mocha:cjs": "mocha --config .mocharc.cjs"
   },
   "author": "demingongo",
   "license": "MIT",
-  "dependencies": {
-    "tslib": "^2.8.1"
-  },
   "devDependencies": {
     "@types/debug": "^4.1.13",
     "@types/node": "^26.6.5",
+    "cross-env": "^10.1.0",
     "debug": "^4.4.3",
     "mocha": "^12.0.3",
+    "tsdown": "^0.23.4",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {

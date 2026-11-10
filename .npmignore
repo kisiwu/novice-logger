@@ -3,6 +3,9 @@ test
 src/
 old-lib/
 tsconfig.json
+tsconfig.*.json
+.mocharc.js
+.mocharc.cjs
 
 private
 

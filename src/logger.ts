@@ -1,9 +1,217 @@
+import process from 'node:process';
+import { createRequire } from 'node:module'
 import Debug from 'debug'
-import { inspect } from 'util'
-import { Colors } from './colors'
-import { LogLevel, LogLevelValue, type LogLevelType } from './levels'
+import { Colors } from './colors.js'
+import { LogLevel, type LogLevelValue, type LogLevelType } from './levels.js'
+
+//#region Declarations and Interfaces for runtime-specific utilities
+
+/**
+ * For Deno, --allow-env is needed because of the debug dependency.
+ */
+declare const Deno: {
+  inspect(obj: any, options: InspectOptions): string;
+  stdout: { writeSync(p: Uint8Array): Promise<number>; isTerminal(): boolean; };
+  stderr: { writeSync(p: Uint8Array): Promise<number>; isTerminal(): boolean; };
+};
+
+declare const Bun: {
+  inspect(obj: any, options: InspectOptions): string;
+};
+
+interface InspectOptions {
+  depth?: number;
+  compact?: boolean;
+  colors?: boolean;
+  breakLength?: number; // does not exist in Bun's inspect options
+  getters?: boolean; // does not exist in Bun's inspect options
+}
+
+interface InspectFunction {
+  (obj: any, options: InspectOptions): string;
+}
+
+interface Inspector {
+  inspect: InspectFunction;
+  isAvailable: () => boolean;
+}
+
+interface TerminalWriteFunction {
+  (p: string): void;
+}
+
+interface Terminal {
+  isTTY: () => boolean;
+  isAvailable: () => boolean;
+  stderr: TerminalWriteFunction;
+  stdout: TerminalWriteFunction;
+}
+
+//#endregion
+
+//#region Utilities for runtime-specific functions
+
+const mod: {
+  _nodeRequire?: ((id: string) => any) | undefined;
+  require: (id: string) => any;
+} = {
+  require(id: string) {
+    if (!mod._nodeRequire) {
+      mod._nodeRequire = createRequire(import.meta.url);
+    }
+    return mod._nodeRequire(id);
+  }
+};
+
+/**
+ * Cached utilities for runtime-specific functions like inspect and write operations.
+ */
+const CACHED_UTILS: {
+  inspect?: InspectFunction;
+  terminal?: Terminal;
+} = {};
+
+/**
+ * Inspectors for different runtime environments.
+ */
+const INSPECTORS: {
+  /**
+   * Deno-specific inspector.
+   */
+  deno: Inspector;
+  /**
+   * Bun-specific inspector.
+   */
+  bun: Inspector;
+  /**
+   * Node.js-specific inspector.
+   */
+  node: Inspector;
+  /**
+   * Fallback inspector for unknown environments.
+   */
+  fallback: Inspector;
+} = {
+  deno: {
+    inspect: (obj: any, options: InspectOptions): string => {
+      return Deno.inspect(obj, {
+        depth: options.depth,
+        compact: options.compact,
+        colors: options.colors,
+        breakLength: options.breakLength,
+        getters: options.getters,
+      });
+    },
+    isAvailable: () => typeof Deno !== 'undefined' && typeof Deno.inspect === 'function'
+  },
+
+  bun: {
+    inspect: (obj: any, options: InspectOptions): string => {
+      return Bun.inspect(obj, {
+        depth: options.depth,
+        compact: options.compact,
+        colors: options.colors,
+      });
+    },
+    isAvailable: () => typeof Bun !== 'undefined' && typeof Bun.inspect === 'function'
+  },
+
+  node: {
+    inspect: (obj: any, options: InspectOptions): string => {
+      const { inspect } = mod.require('node:util');
+      return inspect(obj, {
+        depth: options.depth,
+        compact: options.compact,
+        colors: options.colors,
+        breakLength: options.breakLength,
+        getters: options.getters,
+      });
+    },
+    isAvailable: () => typeof process !== 'undefined' && typeof process.versions !== 'undefined' && typeof process.versions.node !== 'undefined'
+  },
+
+  fallback: {
+    inspect: (obj: any, _options: InspectOptions): string => {
+      return String(obj);
+    },
+    isAvailable: () => true
+  }
+};
+
+const TERMINALS: {
+  /**
+   * Deno-specific terminal.
+   */
+  deno: Terminal;
+  /**
+   * Node.js-specific terminal. Works for Bun as well, which is better than using unawaited async Bun.write().
+   */
+  node: Terminal;
+} = {
+  deno: {
+    isTTY: () => typeof Deno !== 'undefined' &&
+      typeof Deno.stdout !== 'undefined' &&
+      typeof Deno.stdout.isTerminal === 'function' &&
+      Deno.stdout.isTerminal() &&
+      typeof Deno.stderr !== 'undefined' &&
+      typeof Deno.stderr.isTerminal === 'function' &&
+      Deno.stderr.isTerminal(),
+    isAvailable: () => typeof Deno !== 'undefined' &&
+      Deno.stdout && typeof Deno.stdout.writeSync === 'function' &&
+      Deno.stderr && typeof Deno.stderr.writeSync === 'function',
+    stderr: (p: string) => { Deno.stderr.writeSync(new TextEncoder().encode(p)) },
+    stdout: (p: string) => { Deno.stdout.writeSync(new TextEncoder().encode(p)) },
+  },
+  node: {
+    isTTY: () => typeof process !== 'undefined' &&
+      typeof process.stdout !== 'undefined' &&
+      typeof process.stdout.isTTY === 'boolean' &&
+      process.stdout.isTTY &&
+      typeof process.stderr !== 'undefined' &&
+      typeof process.stderr.isTTY === 'boolean' &&
+      process.stderr.isTTY,
+    isAvailable: () => typeof process !== 'undefined' &&
+      process.stdout && typeof process.stdout.write === 'function' &&
+      process.stderr && typeof process.stderr.write === 'function',
+    stderr: (p: string) => { process.stderr.write(p) },
+    stdout: (p: string) => { process.stdout.write(p) },
+  }
+};
+
+//#endregion
 
 //#region Formatters
+
+/**
+ * Inspects the given object using the appropriate environment-specific inspect function.
+ * 
+ * @param obj The object to inspect.
+ * @param options The inspection options.
+ * @returns The inspected string representation of the object.
+ */
+function universalInspect(obj: any, options: InspectOptions): string {
+  try {
+    if (typeof obj === 'string') {
+      return obj;
+    }
+    if (CACHED_UTILS.inspect) {
+      return CACHED_UTILS.inspect(obj, options);
+    }
+    if (INSPECTORS.deno.isAvailable()) {
+      CACHED_UTILS.inspect = INSPECTORS.deno.inspect;
+    } else if (INSPECTORS.bun.isAvailable()) {
+      CACHED_UTILS.inspect = INSPECTORS.bun.inspect;
+    } else if (INSPECTORS.node.isAvailable()) {
+      CACHED_UTILS.inspect = INSPECTORS.node.inspect;
+    } else {
+      CACHED_UTILS.inspect = INSPECTORS.fallback.inspect;
+    }
+    return CACHED_UTILS.inspect(obj, options);
+  } catch (e) {
+    Debug('@novice1/logger')(e);
+    return String(obj);
+  }
+}
 
 /**
  * 
@@ -13,30 +221,30 @@ import { LogLevel, LogLevelValue, type LogLevelType } from './levels'
  * @return string
  */
 function arrayToStringCompact(arr: Array<any>): string {
-  return Array.from(arr)
-    .map(function(x) {
-      if (Array.isArray(x)) {
-        return "[" + arrayToStringCompact(x) + "]";
-      } else if (typeof x === "object") {
-        let v = x;
-        try {
-          v = inspect(x, {
-            depth: 5,
-            compact: true,
-            breakLength: Infinity,
-            colors: false,
-            getters: true,
-          });
-        } catch (e) {
-          // debug
-          Debug('@novice1/logger')(e);
-        }
-        return v;
-      } else {
-        return x;
+  const result: any[] = [];
+  for (const x of Array.from(arr)) {
+    if (Array.isArray(x)) {
+      result.push("[" + arrayToStringCompact(x) + "]");
+    } else if (typeof x === "object") {
+      let v = x;
+      try {
+        v = universalInspect(x, {
+          depth: 5,
+          compact: true,
+          breakLength: Infinity,
+          colors: false,
+          getters: true,
+        });
+      } catch (e) {
+        // debug
+        Debug('@novice1/logger')(e);
       }
-    })
-    .join(" ");
+      result.push(v);
+    } else {
+      result.push(x);
+    }
+  }
+  return result.join(" ");
 }
 
 /**
@@ -47,29 +255,29 @@ function arrayToStringCompact(arr: Array<any>): string {
  * @return string
  */
 function arrayToString(arr: Array<any>): string {
-  return Array.from(arr)
-    .map(function(x) {
-      if (Array.isArray(x)) {
-        return "[" + arrayToString(x) + "]";
-      } else if (typeof x === "object") {
-        let v = x;
-        try {
-          v = inspect(x, {
-            depth: 5,
-            compact: false,
-            colors: false,
-            getters: true,
-          });
-        } catch (e) {
-          // debug
-          Debug('@novice1/logger')(e);
-        }
-        return v;
-      } else {
-        return x;
+  const result: any[] = [];
+  for (const x of Array.from(arr)) {
+    if (Array.isArray(x)) {
+      result.push("[" + arrayToString(x) + "]");
+    } else if (typeof x === "object") {
+      let v = x;
+      try {
+        v = universalInspect(x, {
+          depth: 5,
+          compact: false,
+          colors: false,
+          getters: true,
+        });
+      } catch (e) {
+        // debug
+        Debug('@novice1/logger')(e);
       }
-    })
-    .join(" ");
+      result.push(v);
+    } else {
+      result.push(x);
+    }
+  }
+  return result.join(" ");
 }
 
 /**
@@ -81,20 +289,34 @@ function colorText(txt: string, color?: number) {
   return `\x1b[${color || 0}m${txt}\x1b[0m`
 }
 
+function isTTY(): boolean {
+  if (CACHED_UTILS.terminal) {
+    return CACHED_UTILS.terminal.isTTY();
+  }
+  if (TERMINALS.deno.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.deno;
+    return CACHED_UTILS.terminal.isTTY();
+  } else if (TERMINALS.node.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.node;
+    return CACHED_UTILS.terminal.isTTY();
+  }
+  return false;
+}
+
 //#endregion
 
 //#region Debugger Setup
 Debug.formatters.P = (v) => {
   try {
     v = arrayToString([v]);
-  } catch(e){}
+  } catch (e) { }
   return v;
 }
 
 Debug.formatters.p = (v) => {
   try {
     v = arrayToStringCompact([v]);
-  } catch(e){}
+  } catch (e) { }
   return v;
 }
 //#endregion
@@ -125,6 +347,7 @@ type LoggerContext = {
   write?: WriteFunction | null;
   singleLine?: boolean;
   alwaysFormat?: boolean;
+  color?: boolean;
 }
 
 //#endregion
@@ -177,8 +400,46 @@ function initLoggerLevel(logger: object): void {
 //#region Printers
 
 /**
+ * Writes the given string to the standard error output.
  * 
- * Format message and execute `logger.write` or `process.stdout.write`
+ * @param p The string to write to stderr.
+ */
+function writeStderr(p: string): void {
+  if (CACHED_UTILS.terminal) {
+    CACHED_UTILS.terminal.stderr(p);
+    return;
+  }
+  if (TERMINALS.deno.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.deno;
+    CACHED_UTILS.terminal.stderr(p);
+  } else if (TERMINALS.node.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.node;
+    CACHED_UTILS.terminal.stderr(p);
+  }
+}
+
+/**
+ * Writes the given string to the standard output.
+ * 
+ * @param p The string to write to stdout.
+ */
+function writeStdout(p: string): void {
+  if (CACHED_UTILS.terminal) {
+    CACHED_UTILS.terminal.stdout(p);
+    return;
+  }
+  if (TERMINALS.deno.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.deno;
+    CACHED_UTILS.terminal.stdout(p);
+  } else if (TERMINALS.node.isAvailable()) {
+    CACHED_UTILS.terminal = TERMINALS.node;
+    CACHED_UTILS.terminal.stdout(p);
+  }
+}
+
+/**
+ * 
+ * Format message and execute `logger.write` or `writeStderr`/`writeStdout` depending on the log level.
  * 
  * @param logger 
  * @param colorNumber 
@@ -197,6 +458,7 @@ function doLog(
 ): void {
   const write = logger?.write;
   const singleLine = logger?.singleLine;
+  const color = typeof logger?.color === 'boolean' ? logger.color : isTTY();
 
   function getFormattedMessage(): string {
     let processedArguments = '';
@@ -205,13 +467,13 @@ function doLog(
     } catch (e) {
       // ignore
     }
-    return colorText(processedArguments, colorNumber);
+    return color ? colorText(processedArguments, colorNumber) : processedArguments;
   }
 
   function getFullFormattedMessage(): string {
     let formattedMessage = getFormattedMessage();
     if (name) {
-      formattedMessage = `${colorText(name, colorNumber)} : ${formattedMessage}`;
+      formattedMessage = `${color ? colorText(name, colorNumber) : name} : ${formattedMessage}`;
     }
     return formattedMessage;
   }
@@ -221,13 +483,13 @@ function doLog(
       args: Array.from(args),
       level: name || '',
       message: alwaysFormat ? getFormattedMessage() : '',
-      prefixText: name ? colorText(name, colorNumber) : ''
+      prefixText: name ? (color ? colorText(name, colorNumber) : name) : ''
     });
   } else {
     if (name === 'error') {
-      process.stderr.write(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+      writeStderr(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
     } else {
-      process.stdout.write(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
+      writeStdout(getFullFormattedMessage() + `${!removeNextLine ? '\n' : ''}`);
     }
   }
 }
@@ -284,6 +546,55 @@ function customLevelPrint(this: LoggerContext, color: number, name: string, ...a
 
 //#endregion
 
+//#region Init Logger Printers
+
+function initLoggerPrinters(logger: Logger.CustomLogger | Logger.LoggerStatic): void {
+  Object.defineProperty(logger, 'error', {
+    value: error,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'warn', {
+    value: warn,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'info', {
+    value: info,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'log', {
+    value: log,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'verbose', {
+    value: log,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'debug', {
+    value: debug,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(logger, 'trace', {
+    value: trace,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+}
+
+//#endregion
+
 //#region Logger
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -324,6 +635,9 @@ declare namespace Logger {
         color?: number;
       };
     };
+    alwaysFormat?: boolean;
+    singleLine?: boolean;
+    color?: boolean;
     [x: string]: any;
   }
 
@@ -331,6 +645,7 @@ declare namespace Logger {
     (...args: any[]): void;
     write: WriteFunction | null;
     alwaysFormat: boolean;
+    color: boolean;
     singleLine: boolean;
     error: LogFunction;
     warn: LogFunction;
@@ -346,8 +661,28 @@ declare namespace Logger {
   export interface LoggerStatic extends LevelControl {
     (...args: any[]): void;
     readonly write: undefined;
-    colors: typeof Colors;
-    levels: typeof LogLevel;
+    /**
+     * Tries to write to stderr.
+     * 
+     * Use it only if you know what you are doing. 
+     * Using it incorrectly may lead to unexpected behavior.
+     */
+    writeStderr: (p: string) => void;
+    /**
+     * Tries to write to stdout.
+     * 
+     * Use it only if you know what you are doing. 
+     * Using it incorrectly may lead to unexpected behavior.
+     */
+    writeStdout: (p: string) => void;
+    /**
+     * The available color codes for log messages.
+     */
+    readonly colors: typeof Colors;
+    /**
+     * The available log levels for the logger.
+     */
+    readonly levels: typeof LogLevel;
     error: LogFunction;
     warn: LogFunction;
     info: LogFunction;
@@ -355,93 +690,211 @@ declare namespace Logger {
     log: LogFunction;
     verbose: LogFunction;
     trace: LogFunction;
+    /**
+     * Prints a message to the console with the specified color.
+     * 
+     * @param color The color code to use for the message.
+     * @param args The arguments to print.
+     */
     print(color: number, ...args: any[]): void;
+    /**
+     * Prints a message to the console with the specified color, followed by a newline.
+     * 
+     * @param color The color code to use for the message.
+     * @param args The arguments to print.
+     */
     println(color: number, ...args: any[]): void;
+    /**
+     * Formats a message array into a string.
+     * 
+     * @param message The message array to format.
+     * @param singleLine Whether to format the message as a single line.
+     * @returns The formatted message string.
+     */
     formatMessage(message: any[], singleLine?: boolean): string;
+    /**
+     * Creates a custom logger instance with the specified options.
+     * 
+     * @param options The options to configure the custom logger instance.
+     */
     createLogger(options?: CreateLoggerOptions | null): CustomLogger;
+    /**
+     * Creates a debugger instance with the specified namespace.
+     * 
+     * @param namespace The namespace for the debugger instance.
+     */
     debugger(namespace: string): Debugger;
   }
 }
 
-const DEFAULT_OPTS: Logger.CreateLoggerOptions = { write: null, extend: null, levels: {} };
+const DEFAULT_OPTS: Logger.CreateLoggerOptions = { 
+  write: null, 
+  extend: null, 
+  levels: {}, 
+  alwaysFormat: true,
+  singleLine: false
+};
 
 export const Logger: Logger.LoggerStatic = function (...args: any[]): void {
   Logger.log(...args);
 } as Logger.LoggerStatic;
 
-// cannot overwrite "write" from default logger
+// cannot overwrite `write`, `writeStderr`, `writeStdout` from default logger
 Object.defineProperty(Logger, 'write', {
   value: undefined,
   configurable: false,
   enumerable: false,
   writable: false
 });
+Object.defineProperty(Logger, 'writeStderr', {
+  value: writeStderr,
+  configurable: false,
+  enumerable: false,
+  writable: false
+});
+Object.defineProperty(Logger, 'writeStdout', {
+  value: writeStdout,
+  configurable: false,
+  enumerable: false,
+  writable: false
+});
 initLoggerLevel(Logger);
 
-Logger.colors = Colors;
-Logger.levels = LogLevel;
+Object.defineProperty(Logger, 'colors', {
+  value: Colors,
+  writable: false,      // Cannot change the value
+  configurable: false,  // Cannot delete the property or change its settings
+  enumerable: true      // Keeps it visible in loops/Object.keys()
+});
+Object.defineProperty(Logger, 'levels', {
+  value: LogLevel,
+  writable: false,      // Cannot change the value
+  configurable: false,  // Cannot delete the property or change its settings
+  enumerable: true      // Keeps it visible in loops/Object.keys()
+});
 
-Logger.error = error;
-Logger.warn = warn;
-Logger.info = info;
-Logger.debug = debug;
-Logger.log = log;
-Logger.verbose = log;
-Logger.trace = trace;
-Logger.print = print;
-Logger.println = println;
+initLoggerPrinters(Logger);
+Object.defineProperty(Logger, 'print', {
+  value: print,
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
+Object.defineProperty(Logger, 'println', {
+  value: println,
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
-Logger.formatMessage = function (messageArray: any[], singleLine?: boolean): string {
-  return singleLine ? arrayToStringCompact(messageArray) : arrayToString(messageArray);
-};
+// Logger.formatMessage
+Object.defineProperty(Logger, 'formatMessage', {
+  value: function (messageArray: any[], singleLine?: boolean): string {
+    return singleLine ? arrayToStringCompact(messageArray) : arrayToString(messageArray);
+  },
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
-Logger.createLogger = function (opts: Logger.CreateLoggerOptions | null = DEFAULT_OPTS): Logger.CustomLogger {
-  const options = opts || DEFAULT_OPTS;
-  const levels = options.levels || {};
-  const extend = typeof options.extend === 'function' ? options.extend : null;
+// Logger.createLogger
+Object.defineProperty(Logger, 'createLogger', {
+  value: function (opts: Logger.CreateLoggerOptions | null = { ...DEFAULT_OPTS }): Logger.CustomLogger {
+    const options = opts || { ...DEFAULT_OPTS };
+    const levels = options.levels || {};
+    const extend = typeof options.extend === 'function' ? options.extend : null;
 
-  const customLogger = function (...args: any[]): void {
-    customLogger.log(...args);
-  } as Logger.CustomLogger;
+    const customLogger = function (...args: any[]): void {
+      customLogger.log(...args);
+    } as Logger.CustomLogger;
 
-  customLogger.write = typeof options.write === 'function' ? options.write : null;
-  customLogger.alwaysFormat = true;
-  customLogger.singleLine = false;
+    customLogger.write = typeof options.write === 'function' ? options.write : null;
 
-  customLogger.error = error;
-  customLogger.warn = warn;
-  customLogger.info = info;
-  customLogger.log = log;
-  customLogger.verbose = log;
-  customLogger.debug = debug;
-  customLogger.trace = trace;
+    let _alwaysFormat = typeof options.alwaysFormat === 'boolean' ? options.alwaysFormat : DEFAULT_OPTS.alwaysFormat;
+    let _color = typeof options.color === 'boolean' ? options.color : isTTY();
+    let _singleLine = typeof options.singleLine === 'boolean' ? options.singleLine : DEFAULT_OPTS.singleLine;
+    Object.defineProperty(customLogger, 'alwaysFormat', {
+      get(this: Logger.CustomLogger) {
+        return _alwaysFormat;
+      },
+      set(this: Logger.CustomLogger, value: boolean) {
+        if (typeof value === 'boolean') {
+          _alwaysFormat = value;
+        }
+      },
+      enumerable: true
+    });
+    Object.defineProperty(customLogger, 'color', {
+      get(this: Logger.CustomLogger) {
+        return _color;
+      },
+      set(this: Logger.CustomLogger, value: boolean) {
+        if (typeof value === 'boolean') {
+          _color = value;
+        }
+      },
+      enumerable: true
+    });
+    Object.defineProperty(customLogger, 'singleLine', {
+      get(this: Logger.CustomLogger) {
+        return _singleLine;
+      },
+      set(this: Logger.CustomLogger, value: boolean) {
+        if (typeof value === 'boolean') {
+          _singleLine = value;
+        }
+      },
+      enumerable: true
+    });
 
-  customLogger.custom = function (name: string, ...rest: any[]): void {
-    const ctx = customLogger as unknown as LoggerContext;
-    const level = levels[name];
-    if (level) {
-      // custom level
-      const lvl = typeof level.level === 'number' ? level.level : LogLevel.trace;
-      if (ctx._level >= lvl) {
-        customLevelPrint.call(ctx, level.color || Colors.RESET, name, ...rest);
-      }
-    } else if (typeof (customLogger as any)[name] === 'function') {
-      // default level
-      (customLogger as any)[name](...rest);
-    } else {
-      // default log
-      customLogger(name, ...rest);
-    }
-  };
+    initLoggerPrinters(customLogger);
 
-  customLogger.extend = function (...args: any[]): any {
-    return extend ? extend({ args }) : Logger.createLogger(options);
-  };
+    Object.defineProperty(customLogger, 'custom', {
+      value: function (name: string, ...rest: any[]): void {
+        const ctx = customLogger as unknown as LoggerContext;
+        const level = levels[name];
+        if (level) {
+          // custom level
+          const lvl = typeof level.level === 'number' ? level.level : LogLevel.trace;
+          if (ctx._level >= lvl) {
+            customLevelPrint.call(ctx, level.color || Colors.RESET, name, ...rest);
+          }
+        } else if (typeof (customLogger as any)[name] === 'function') {
+          // default level
+          (customLogger as any)[name](...rest);
+        } else {
+          // default log
+          customLogger(name, ...rest);
+        }
+      },
+      configurable: false,
+      writable: false,
+      enumerable: true
+    });
+    Object.defineProperty(customLogger, 'extend', {
+      value: function (...args: any[]): any {
+        return extend ? extend({ args }) : Logger.createLogger({
+          write: customLogger.write,
+          extend: null,
+          alwaysFormat: _alwaysFormat,
+          color: _color,
+          singleLine: _singleLine,
+          levels: levels,
+        });
+      },
+      configurable: false,
+      writable: false,
+      enumerable: true
+    });
 
-  initLoggerLevel(customLogger);
+    initLoggerLevel(customLogger);
 
-  return customLogger;
-};
+    return customLogger;
+  },
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
 //#endregion
 
@@ -467,8 +920,14 @@ function decorateDebugger(dbg: Debug.Debugger): Logger.Debugger {
   return customLogger as unknown as Logger.Debugger;
 }
 
-Logger.debugger = function (namespace: string): Logger.Debugger {
-  return decorateDebugger(Debug(namespace));
-};
+// Logger.debugger
+Object.defineProperty(Logger, 'debugger', {
+  value: function (namespace: string): Logger.Debugger {
+    return decorateDebugger(Debug(namespace));
+  },
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
 //#endregion
