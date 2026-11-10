@@ -212,6 +212,9 @@ const customLogger = Logger.createLogger({
 // print objects on a single line
 customLogger.singleLine = true;
 
+// force color output (even if the stdout and stderr are not a TTY)
+customLogger.color = true;
+
 // set level
 customLogger.level = Logger.levels.verbose;
 
